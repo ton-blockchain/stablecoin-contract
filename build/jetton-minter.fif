@@ -23,31 +23,35 @@ PROGRAM{
     THROWANYIFNOT
   }>
   pack_jetton_wallet_data PROC:<{
-    //  balance owner_address jetton_master_address jetton_wallet_code
-    NEWC	//  balance owner_address jetton_master_address jetton_wallet_code _4
-    s0 s4 XCHG2	//  jetton_wallet_code owner_address jetton_master_address _4 balance
-    STVARUINT16	//  jetton_wallet_code owner_address jetton_master_address _5
-    ROT	//  jetton_wallet_code jetton_master_address _5 owner_address
-    STSLICER	//  jetton_wallet_code jetton_master_address _6
-    SWAP	//  jetton_wallet_code _6 jetton_master_address
-    STSLICER	//  jetton_wallet_code _7
-    STREF	//  _8
-    ENDC	//  _9
+    //  status balance owner_address jetton_master_address jetton_wallet_code
+    s0 s4 XCHG
+    NEWC	//  jetton_wallet_code balance owner_address jetton_master_address status _5
+    4 STU	//  jetton_wallet_code balance owner_address jetton_master_address _7
+    s0 s3 XCHG2	//  jetton_wallet_code jetton_master_address owner_address _7 balance
+    STVARUINT16	//  jetton_wallet_code jetton_master_address owner_address _8
+    SWAP	//  jetton_wallet_code jetton_master_address _8 owner_address
+    STSLICER	//  jetton_wallet_code jetton_master_address _9
+    SWAP	//  jetton_wallet_code _9 jetton_master_address
+    STSLICER	//  jetton_wallet_code _10
+    STREF	//  _11
+    ENDC	//  _12
   }>
   calculate_jetton_wallet_state_init PROC:<{
     //  owner_address jetton_master_address jetton_wallet_code
     0 PUSHINT	//  owner_address jetton_master_address jetton_wallet_code _3=0
-    s0 s1 s2 XCPUXC
-    s4 s0 s3 XC2PU	//  _3=0 jetton_wallet_code _4=0 owner_address jetton_master_address jetton_wallet_code
-    pack_jetton_wallet_data INLINECALLDICT	//  _3=0 jetton_wallet_code _5
-    s2 PUSH	//  _3=0 jetton_wallet_code _5 _6=0
-    NEWC	//  _3=0 jetton_wallet_code _5 _6=0 _7
-    2 STU	//  _3=0 jetton_wallet_code _5 _9
-    s1 s2 XCHG	//  _3=0 _5 jetton_wallet_code _9
-    STDICT	//  _3=0 _5 _10
-    STDICT	//  _3=0 _11
-    1 STU	//  _13
-    ENDC	//  _14
+    s0 s(-1) s2 PU2XC
+    s1 s3 XCHG
+    s5 s0 s5 XC2PU	//  jetton_wallet_code _3=0 _4=0 _5=0 owner_address jetton_master_address jetton_wallet_code
+    pack_jetton_wallet_data INLINECALLDICT	//  jetton_wallet_code _3=0 _6
+    OVER	//  jetton_wallet_code _3=0 _6 _7=0
+    NEWC	//  jetton_wallet_code _3=0 _6 _7=0 _8
+    2 STU	//  jetton_wallet_code _3=0 _6 _10
+    s1 s3 XCHG	//  _6 _3=0 jetton_wallet_code _10
+    STDICT	//  _6 _3=0 _11
+    s1 s2 XCHG	//  _3=0 _6 _11
+    STDICT	//  _3=0 _12
+    1 STU	//  _14
+    ENDC	//  _15
   }>
   calculate_jetton_wallet_address PROC:<{
     //  state_init

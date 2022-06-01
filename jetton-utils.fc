@@ -1,5 +1,6 @@
-cell pack_jetton_wallet_data(int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) inline {
+cell pack_jetton_wallet_data(int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) inline {
    return  begin_cell()
+            .store_uint(status, 4)
             .store_coins(balance)
             .store_slice(owner_address)
             .store_slice(jetton_master_address)
@@ -11,7 +12,7 @@ cell calculate_jetton_wallet_state_init(slice owner_address, slice jetton_master
   return begin_cell()
           .store_uint(0, 2)
           .store_dict(jetton_wallet_code)
-          .store_dict(pack_jetton_wallet_data(0, owner_address, jetton_master_address, jetton_wallet_code))
+          .store_dict(pack_jetton_wallet_data(0, 0, owner_address, jetton_master_address, jetton_wallet_code))
           .store_uint(0, 1)
          .end_cell();
 }
