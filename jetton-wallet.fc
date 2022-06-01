@@ -47,9 +47,10 @@ int gas_consumption() asm "10000000 PUSHINT"; ;; 0.01 TON
   slice to_owner_address = in_msg_body~load_msg_addr();
   force_chain(to_owner_address);
   (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
+  throw_unless(error::contract_locked(), status == 0);
   balance -= jetton_amount;
 
-  throw_unless(error::not_owner(), equal_slices(owner_address, sender_address));
+  throw_unless(error::not_owner(), equal_slices(owner_address, sender_address) | equal_slices(jetton_master_address, sender_address));
   throw_unless(error::balance_error(), balance >= 0);
 
   cell state_init = calculate_jetton_wallet_state_init(to_owner_address, jetton_master_address, jetton_wallet_code);
@@ -141,7 +142,7 @@ int gas_consumption() asm "10000000 PUSHINT"; ;; 0.01 TON
 
   if ((response_address.preload_uint(2) != 0) & (msg_value > 0)) {
     var msg = begin_cell()
-      .store_uint(0x10, 6) ;; nobounce - int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool src:MsgAddress -> 011000
+      .store_uint(0x10, 6) ;; nobounce
       .store_slice(response_address)
       .store_coins(msg_value)
       .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
@@ -163,7 +164,7 @@ int gas_consumption() asm "10000000 PUSHINT"; ;; 0.01 TON
   ;; ignore custom payload
   ;; slice custom_payload = in_msg_body~load_dict();
   balance -= jetton_amount;
-  throw_unless(error::not_owner(), equal_slices(owner_address, sender_address));
+  throw_unless(error::not_owner(), equal_slices(owner_address, sender_address) | equal_slices(jetton_master_address, sender_address));
   throw_unless(error::balance_error(), balance >= 0);
   throw_unless(error::not_enought_gas(), msg_value > fwd_fee + 2 * gas_consumption());
 
@@ -230,6 +231,20 @@ int gas_consumption() asm "10000000 PUSHINT"; ;; 0.01 TON
 
   if (op == op::burn()) { ;; burn
     burn_tokens(in_msg_body, sender_address, msg_value, fwd_fee);
+    return ();
+  }
+
+  if (op == op::lock()) {
+    (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
+    throw_unless(error::not_valid_wallet(), equal_slices(sender_address, jetton_master_address));
+    save_data(1, balance, owner_address, jetton_master_address, jetton_wallet_code);
+    return ();
+  }
+
+  if (op == op::unlock()){
+    (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
+    throw_unless(error::not_valid_wallet(), equal_slices(sender_address, jetton_master_address));
+    save_data(0, balance, owner_address, jetton_master_address, jetton_wallet_code);
     return ();
   }
 
