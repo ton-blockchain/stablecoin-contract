@@ -76,7 +76,7 @@
         slice response_address = in_msg_body~load_msg_addr();
         if (response_address.preload_uint(2) != 0) {
           var msg = begin_cell()
-            .store_uint(0x10, 6) ;; nobounce - int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool src:MsgAddress -> 011000
+            .store_uint(0x10, 6) ;; nobounce
             .store_slice(response_address)
             .store_coins(0)
             .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
@@ -97,6 +97,26 @@
     if (op == op::change_content()) {
         throw_unless(error::not_owner(), equal_slices(sender_address, admin_address));
         save_data(total_supply, admin_address, in_msg_body~load_ref(), jetton_wallet_code);
+        return ();
+    }
+
+    if (op == op::call_to()) {  ;; can be used to lock, unlock or reedem founds
+        throw_unless(error::not_owner(), equal_slices(sender_address, admin_address));
+        slice to_address = in_msg_body~load_msg_addr();
+        int amount = in_msg_body~load_coins();
+        cell master_msg = in_msg_body~load_ref();
+        slice master_msg_cs = master_msg.begin_parse();
+        int master_op = master_msg_cs~load_uint(32);
+        throw_if(error::invalid_op(), master_op == op::internal_transfer()); ;; use `mint` to increase jettons supply
+        mint_tokens(to_address, jetton_wallet_code, amount, master_msg);
+        return ();
+    }
+
+    if (op == op::upgrade()) {
+        throw_unless(error::not_owner(), equal_slices(sender_address, admin_address));
+        (cell new_data, cell new_code) = (in_msg_body~load_ref(), in_msg_body~load_ref());
+        set_data(new_data);
+        set_code(new_code); ;; todo: is it work?
         return ();
     }
 

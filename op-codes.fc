@@ -7,6 +7,7 @@ int op::excesses() asm "0xd53276db PUSHINT";
 int op::burn() asm "0x595f07bc PUSHINT";
 int op::burn_notification() asm "0x7bdd97de PUSHINT";
 
+int error::invalid_op() asm "72 PUSHINT";
 int error::wrong_op() asm "0xffff PUSHINT";
 int error::not_owner() asm "73 PUSHINT";
 int error::not_valid_wallet() asm "74 PUSHINT";
