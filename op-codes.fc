@@ -1,3 +1,5 @@
+;; common
+
 int op::transfer() asm "0xf8a7ea5 PUSHINT";
 int op::transfer_notification() asm "0x7362d09c PUSHINT";
 int op::internal_transfer() asm "0x178d4519 PUSHINT";
@@ -5,5 +7,24 @@ int op::excesses() asm "0xd53276db PUSHINT";
 int op::burn() asm "0x595f07bc PUSHINT";
 int op::burn_notification() asm "0x7bdd97de PUSHINT";
 
-;; Minter
+int error::wrong_op() asm "0xffff PUSHINT";
+int error::not_owner() asm "73 PUSHINT";
+int error::not_valid_wallet() asm "74 PUSHINT";
+int error::wrong_workchain() asm "333 PUSHINT";
+
+;; jetton-minter
+
 int op::mint() asm "21 PUSHINT";
+int op::change_admin() asm "3 PUSHINT";
+int op::change_content() asm "4 PUSHINT";
+int op::upgrade() asm "5 PUSHINT";
+int op::call_to() asm "6 PUSHINT";
+
+;; jetton-wallet
+
+int op::lock() asm "100 PUSHINT";
+int op::unlock() asm "101 PUSHINT";
+
+int error::contract_locked() asm "45 PUSHINT";
+int error::balance_error() asm "47 PUSHINT";
+int error::not_enought_gas() asm "48 PUSHINT";
