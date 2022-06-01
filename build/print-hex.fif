@@ -11,9 +11,3 @@
 
 "jetton-wallet.fif" include
 2 boc+>B dup Bx. cr
-
-
-."jetton-minter-ICO:" cr
-
-"jetton-minter-ICO.fif" include
-2 boc+>B dup Bx. cr
