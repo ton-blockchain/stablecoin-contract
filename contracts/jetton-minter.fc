@@ -2,10 +2,10 @@
 
 #pragma version >=0.2.0;
 
-#include "stdlib.func";
-#include "op-codes.func";
-#include "params.func";
-#include "jetton-utils.func";
+#include "stdlib.fc";
+#include "op-codes.fc";
+#include "params.fc";
+#include "jetton-utils.fc";
 
 ;; storage scheme
 ;; storage#_ total_supply:Coins admin_address:MsgAddress content:^Cell jetton_wallet_code:^Cell = Storage;

@@ -2,5 +2,5 @@ const workchain = 0;
 
 () force_chain(slice addr) impure {
   (int wc, _) = parse_std_addr(addr);
-  throw_unless(error::wrong_workchain(), wc == workchain());
+  throw_unless(error::wrong_workchain, wc == workchain);
 }
