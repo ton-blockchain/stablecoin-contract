@@ -12,6 +12,13 @@ This is suitable for most tokens, if you need tokens transferable between workch
 
 -}
 
+#pragma version >=0.2.0;
+
+#include "stdlib.func";
+#include "op-codes.func";
+#include "params.func";
+#include "jetton-utils.func";
+
 const min_tons_for_storage = 10000000; ;; 0.01 TON
 const gas_consumption = 10000000; ;; 0.01 TON
 
