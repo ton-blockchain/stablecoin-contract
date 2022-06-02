@@ -47,10 +47,11 @@ int gas_consumption() asm "10000000 PUSHINT"; ;; 0.01 TON
   slice to_owner_address = in_msg_body~load_msg_addr();
   force_chain(to_owner_address);
   (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
-  throw_unless(error::contract_locked(), status == 0);
+  int is_from_master = equal_slices(jetton_master_address, sender_address);
+  throw_unless(error::contract_locked(), (status == 0) | is_from_master);
   balance -= jetton_amount;
 
-  throw_unless(error::not_owner(), equal_slices(owner_address, sender_address) | equal_slices(jetton_master_address, sender_address));
+  throw_unless(error::not_owner(), equal_slices(owner_address, sender_address) | is_from_master);
   throw_unless(error::balance_error(), balance >= 0);
 
   cell state_init = calculate_jetton_wallet_state_init(to_owner_address, jetton_master_address, jetton_wallet_code);

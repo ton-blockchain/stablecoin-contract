@@ -23,16 +23,21 @@
           );
 }
 
-() mint_tokens(slice to_address, cell jetton_wallet_code, int amount, cell master_msg) impure {
+() send_to_jetton_wallet(slice to_address, cell jetton_wallet_code, int amount, cell master_msg, int need_state_init) impure {
   cell state_init = calculate_jetton_wallet_state_init(to_address, my_address(), jetton_wallet_code);
   slice to_wallet_address = calculate_jetton_wallet_address(state_init);
   var msg = begin_cell()
     .store_uint(0x18, 6)
     .store_slice(to_wallet_address)
     .store_coins(amount)
-    .store_uint(4 + 2 + 1, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
-    .store_ref(state_init)
-    .store_ref(master_msg);
+    .store_uint(need_state_init ? (4 + 2 + 1) : 1, need_state_init ? (1 + 4 + 4 + 64 + 32 + 1 + 1 + 1) : (1 + 4 + 4 + 64 + 32 + 1 + 1));
+
+  if (need_state_init) {
+    msg = msg.store_ref(state_init);
+  }
+
+  msg = msg.store_ref(master_msg);
+
   send_raw_message(msg.end_cell(), 1); ;; pay transfer fees separately, revert on errors
 }
 
@@ -59,9 +64,10 @@
         int amount = in_msg_body~load_coins();
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
-        master_msg_cs~skip_bits(32 + 64); ;; op + query_id
+        throw_unless(error::invalid_op(), master_msg_cs~load_uint(32) == op::internal_transfer());
+        master_msg_cs~skip_bits(64); ;; query_id
         int jetton_amount = master_msg_cs~load_coins();
-        mint_tokens(to_address, jetton_wallet_code, amount, master_msg);
+        send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, 1);
         save_data(total_supply + jetton_amount, admin_address, content, jetton_wallet_code);
         return ();
     }
@@ -108,7 +114,7 @@
         slice master_msg_cs = master_msg.begin_parse();
         int master_op = master_msg_cs~load_uint(32);
         throw_if(error::invalid_op(), master_op == op::internal_transfer()); ;; use `mint` to increase jettons supply
-        mint_tokens(to_address, jetton_wallet_code, amount, master_msg);
+        send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, 0);
         return ();
     }
 
