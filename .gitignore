@@ -1,2 +1,7 @@
 .idea/
 *.iml
+node_modules
+.env*
+!.env.example
+.wget-hsts
+bin
