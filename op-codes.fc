@@ -23,8 +23,7 @@ int op::call_to() asm "6 PUSHINT";
 
 ;; jetton-wallet
 
-int op::lock() asm "100 PUSHINT";
-int op::unlock() asm "101 PUSHINT";
+int op::set_status() asm "100 PUSHINT";
 
 int error::contract_locked() asm "45 PUSHINT";
 int error::balance_error() asm "47 PUSHINT";

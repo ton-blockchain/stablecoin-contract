@@ -400,15 +400,15 @@ PROGRAM{
       on_bounce CALLDICT
     }>	//  my_balance msg_value in_msg_body cs
     LDMSGADDR	//  my_balance msg_value in_msg_body sender_address cs
-    LDMSGADDR	//  my_balance msg_value in_msg_body sender_address _75 _74
+    LDMSGADDR	//  my_balance msg_value in_msg_body sender_address _65 _64
     NIP	//  my_balance msg_value in_msg_body sender_address cs
-    LDVARUINT16	//  my_balance msg_value in_msg_body sender_address _77 _76
+    LDVARUINT16	//  my_balance msg_value in_msg_body sender_address _67 _66
     NIP	//  my_balance msg_value in_msg_body sender_address cs
     1 PUSHINT	//  my_balance msg_value in_msg_body sender_address cs _22=1
     SDSKIPFIRST	//  my_balance msg_value in_msg_body sender_address cs
-    LDVARUINT16	//  my_balance msg_value in_msg_body sender_address _79 _78
+    LDVARUINT16	//  my_balance msg_value in_msg_body sender_address _69 _68
     NIP	//  my_balance msg_value in_msg_body sender_address cs
-    LDVARUINT16	//  my_balance msg_value in_msg_body sender_address _81 _80
+    LDVARUINT16	//  my_balance msg_value in_msg_body sender_address _71 _70
     DROP	//  my_balance msg_value in_msg_body sender_address fwd_fee
     s0 s2 XCHG	//  my_balance msg_value fwd_fee sender_address in_msg_body
     32 LDU	//  my_balance msg_value fwd_fee sender_address op in_msg_body
@@ -439,43 +439,26 @@ PROGRAM{
       -ROT	//  in_msg_body sender_address msg_value fwd_fee
       burn_tokens CALLDICT
     }>	//  in_msg_body msg_value fwd_fee sender_address op
-    2 2 BLKDROP2
-    s2 POP	//  op sender_address
-    100 PUSHINT	//  op sender_address _42
-    s2 s(-1) PUXC	//  op sender_address op _42
-    EQUAL	//  op sender_address _43
-    IFJMP:<{	//  op sender_address
-      NIP	//  sender_address
-      load_data INLINECALLDICT	//  sender_address _84 _85 _86 _87 _88
-      s4 POP	//  sender_address jetton_wallet_code balance owner_address jetton_master_address
-      74 PUSHINT	//  sender_address jetton_wallet_code balance owner_address jetton_master_address _50
-      s5 s1 XCPU	//  _50 jetton_wallet_code balance owner_address jetton_master_address sender_address jetton_master_address
-      SDEQ	//  _50 jetton_wallet_code balance owner_address jetton_master_address _51
-      s1 s5 XCHG	//  jetton_master_address jetton_wallet_code balance owner_address _50 _51
+    2 2 BLKDROP2	//  in_msg_body sender_address op
+    100 PUSHINT	//  in_msg_body sender_address op _42
+    EQUAL	//  in_msg_body sender_address _43
+    IFJMP:<{	//  in_msg_body sender_address
+      SWAP	//  sender_address in_msg_body
+      4 LDU	//  sender_address _75 _74
+      DROP	//  sender_address new_status
+      load_data INLINECALLDICT	//  sender_address new_status _76 _77 _78 _79 _80
+      s4 POP	//  sender_address new_status jetton_wallet_code balance owner_address jetton_master_address
+      74 PUSHINT	//  sender_address new_status jetton_wallet_code balance owner_address jetton_master_address _54
+      s6 s1 XCPU	//  _54 new_status jetton_wallet_code balance owner_address jetton_master_address sender_address jetton_master_address
+      SDEQ	//  _54 new_status jetton_wallet_code balance owner_address jetton_master_address _55
+      s1 s6 XCHG	//  jetton_master_address new_status jetton_wallet_code balance owner_address _54 _55
       THROWANYIFNOT
-      1 PUSHINT	//  jetton_master_address jetton_wallet_code balance owner_address _53=1
-      s1 s4 s4 XCHG3
-      s0 s3 XCHG	//  _53=1 balance owner_address jetton_master_address jetton_wallet_code
+      2SWAP
+      s1 s4 XCHG	//  new_status balance owner_address jetton_master_address jetton_wallet_code
       save_data INLINECALLDICT
-    }>	//  op sender_address
-    101 PUSHINT	//  op sender_address _55
-    s1 s2 XCHG	//  sender_address op _55
-    EQUAL	//  sender_address _56
-    IFJMP:<{	//  sender_address
-      load_data INLINECALLDICT	//  sender_address _89 _90 _91 _92 _93
-      s4 POP	//  sender_address jetton_wallet_code balance owner_address jetton_master_address
-      74 PUSHINT	//  sender_address jetton_wallet_code balance owner_address jetton_master_address _63
-      s5 s1 XCPU	//  _63 jetton_wallet_code balance owner_address jetton_master_address sender_address jetton_master_address
-      SDEQ	//  _63 jetton_wallet_code balance owner_address jetton_master_address _64
-      s1 s5 XCHG	//  jetton_master_address jetton_wallet_code balance owner_address _63 _64
-      THROWANYIFNOT
-      0 PUSHINT	//  jetton_master_address jetton_wallet_code balance owner_address _66=0
-      s1 s4 s4 XCHG3
-      s0 s3 XCHG	//  _66=0 balance owner_address jetton_master_address jetton_wallet_code
-      save_data INLINECALLDICT
-    }>	//  sender_address
-    DROP	// 
-    0xffff PUSHINT	//  _68
+    }>	//  in_msg_body sender_address
+    2DROP	// 
+    0xffff PUSHINT	//  _58
     THROWANY
   }>
   get_wallet_data PROC:<{

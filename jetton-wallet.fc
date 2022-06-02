@@ -234,17 +234,11 @@ int gas_consumption() asm "10000000 PUSHINT"; ;; 0.01 TON
     return ();
   }
 
-  if (op == op::lock()) {
+  if (op == op::set_status()) {
+    int new_status = in_msg_body~load_uint(4);
     (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
     throw_unless(error::not_valid_wallet(), equal_slices(sender_address, jetton_master_address));
-    save_data(1, balance, owner_address, jetton_master_address, jetton_wallet_code);
-    return ();
-  }
-
-  if (op == op::unlock()){
-    (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
-    throw_unless(error::not_valid_wallet(), equal_slices(sender_address, jetton_master_address));
-    save_data(0, balance, owner_address, jetton_master_address, jetton_wallet_code);
+    save_data(new_status, balance, owner_address, jetton_master_address, jetton_wallet_code);
     return ();
   }
 
