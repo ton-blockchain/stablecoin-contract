@@ -58,13 +58,13 @@
 
     (int total_supply, slice admin_address, cell content, cell jetton_wallet_code) = load_data();
 
-    if (op == op::mint()) {
-        throw_unless(error::not_owner(), equal_slices(sender_address, admin_address));
+    if (op == op::mint) {
+        throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
         slice to_address = in_msg_body~load_msg_addr();
         int amount = in_msg_body~load_coins();
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
-        throw_unless(error::invalid_op(), master_msg_cs~load_uint(32) == op::internal_transfer());
+        throw_unless(error::invalid_op, master_msg_cs~load_uint(32) == op::internal_transfer);
         master_msg_cs~skip_bits(64); ;; query_id
         int jetton_amount = master_msg_cs~load_coins();
         send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, 1);
@@ -72,10 +72,10 @@
         return ();
     }
 
-    if (op == op::burn_notification()) {
+    if (op == op::burn_notification) {
         int jetton_amount = in_msg_body~load_coins();
         slice from_address = in_msg_body~load_msg_addr();
-        throw_unless(error::not_valid_wallet(),
+        throw_unless(error::not_valid_wallet,
             equal_slices(calculate_user_jetton_wallet_address(from_address, my_address(), jetton_wallet_code), sender_address)
         );
         save_data(total_supply - jetton_amount, admin_address, content, jetton_wallet_code);
@@ -86,47 +86,47 @@
             .store_slice(response_address)
             .store_coins(0)
             .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-            .store_uint(op::excesses(), 32)
+            .store_uint(op::excesses, 32)
             .store_uint(query_id, 64);
           send_raw_message(msg.end_cell(), 2 + 64);
         }
         return ();
     }
 
-    if (op == op::change_admin()) {
-        throw_unless(error::not_owner(), equal_slices(sender_address, admin_address));
+    if (op == op::change_admin) {
+        throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
         slice new_admin_address = in_msg_body~load_msg_addr();
         save_data(total_supply, new_admin_address, content, jetton_wallet_code);
         return ();
     }
 
-    if (op == op::change_content()) {
-        throw_unless(error::not_owner(), equal_slices(sender_address, admin_address));
+    if (op == op::change_content) {
+        throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
         save_data(total_supply, admin_address, in_msg_body~load_ref(), jetton_wallet_code);
         return ();
     }
 
-    if (op == op::call_to()) {  ;; can be used to lock, unlock or reedem founds
-        throw_unless(error::not_owner(), equal_slices(sender_address, admin_address));
+    if (op == op::call_to) {  ;; can be used to lock, unlock or reedem founds
+        throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
         slice to_address = in_msg_body~load_msg_addr();
         int amount = in_msg_body~load_coins();
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
         int master_op = master_msg_cs~load_uint(32);
-        throw_if(error::invalid_op(), master_op == op::internal_transfer()); ;; use `mint` to increase jettons supply
+        throw_if(error::invalid_op, master_op == op::internal_transfer); ;; use `mint` to increase jettons supply
         send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, 0);
         return ();
     }
 
-    if (op == op::upgrade()) {
-        throw_unless(error::not_owner(), equal_slices(sender_address, admin_address));
+    if (op == op::upgrade) {
+        throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
         (cell new_data, cell new_code) = (in_msg_body~load_ref(), in_msg_body~load_ref());
         set_data(new_data);
         set_code(new_code); ;; todo: is it work?
         return ();
     }
 
-    throw(error::wrong_op());
+    throw(error::wrong_op);
 }
 
 (int, int, slice, cell, cell) get_jetton_data() method_id {
