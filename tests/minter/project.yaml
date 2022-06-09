@@ -1,9 +1,0 @@
-contract:
-  func:
-    - ../../stdlib.fc
-    - ../../op-codes.fc
-    - ../../params.fc
-    - ../../jetton-utils.fc
-    - ../../jetton-minter.fc
-  tests:
-    - tests.fc
