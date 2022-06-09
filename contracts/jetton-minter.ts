@@ -16,12 +16,12 @@ export function data(params: {
         .endCell();
 }
 
-export function mint(params: { sender: Address; toAddress: Address; gasAmount: BN, jettonAmount: BN; fromAddress?: Address; responseAddress?: Address; forwardTonAmount?: BN; }): Cell {
+export function mint(params: { toAddress: Address; gasAmount: BN, jettonAmount: BN; fromAddress?: Address; responseAddress?: Address; forwardTonAmount?: BN; }): Cell {
     return beginMessage({ op: new BN(21) })
         .storeAddress(params.toAddress)
         .storeCoins(params.gasAmount)
         .storeRef(beginCell()
-            .storeUint(21, 32)
+            .storeUint(0x178d4519, 32)
             .storeUint(0, 64)
             .storeCoins(params.jettonAmount)
             .storeAddress(params.fromAddress || null)
