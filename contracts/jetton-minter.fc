@@ -128,7 +128,7 @@
         throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
         (cell new_data, cell new_code) = (in_msg_body~load_ref(), in_msg_body~load_ref());
         set_data(new_data);
-        set_code(new_code); ;; todo: is it work?
+        set_code(new_code);
         return ();
     }
 
