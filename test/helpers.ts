@@ -58,13 +58,15 @@ export async function sendInternalMessageWithWallet(params: { walletContract: Wa
     }
 }
 
-export function parseUri(cell: Cell) {
-    return new TextDecoder().decode(cell.beginParse().readRemainingBytes().slice(1)); // skip prefix
+export function parseUri(bytes: BufferSource) {
+    return new TextDecoder().decode(bytes); // skip prefix
 }
 export function createOffchainUriCell(uri: string) {
+    let buffer = Buffer.from(serializeUri(uri));
+
     return beginCell()
         .storeUint(OFFCHAIN_CONTENT_PREFIX, 8)
-        .storeBitArray([].slice.call(serializeUri(uri)))
+        .storeBuffer(buffer)
         .endCell();
 }
 
@@ -74,4 +76,8 @@ export function serializeUri(uri: string) {
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function parseOffchainUriCell(cell: Cell) {
+    return parseUri(cell.beginParse().readRemainingBytes().slice(1));
 }
