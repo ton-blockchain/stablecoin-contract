@@ -28,10 +28,6 @@ The following assumes the use of `node@>=16` and requires `func` and `fift` exec
 
 `npm run test`
 
-## Deploy Contracts
-
-`npm run deploy`
-
 ## Credits
 
 Author @dariotarantini.
