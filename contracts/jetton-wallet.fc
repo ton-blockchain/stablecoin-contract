@@ -243,6 +243,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
   }
 
   if (op == op::set_status) {
+    in_msg_body~skip_bits(64); ;; query_id
     int new_status = in_msg_body~load_uint(4);
     (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
     throw_unless(error::not_valid_wallet, equal_slices(sender_address, jetton_master_address));

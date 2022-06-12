@@ -55,7 +55,7 @@ describe("minter tests", () => {
         );
 
         expect(sendMintTokens.type).to.be.equal("success");
-        expect((sendMintTokens.actionList[0] as SendMsgAction).message.info.dest?.toString()).to.be.equal(Address.parseFriendly("EQAS803jTMzPnVCXp9l-qNdXF4UkZbgf9WDfVPYDus_FisGr").address.toString());
+        expect((sendMintTokens.actionList[0] as SendMsgAction).message.info.dest?.toString()).to.be.equal(Address.parseFriendly("EQBe2eJEEHqk6OHu0No0epXXgNpltyyTNddNX9KPySMVmbbY").address.toString());
 
         const callJettonData = await contract.invokeGetMethod("get_jetton_data", []);
 
@@ -192,7 +192,7 @@ describe("minter tests", () => {
         expect(sendUpgradeContract.actionList[0].type).to.be.equal("set_code");
     });
 
-    it("should be able to send messagges to wallets", async () => {
+    it("should send messagges to wallets", async () => {
         const sendMsgToWalletNotAdmin = await contract.sendInternalMessage(
             internalMessage({
                 from: alice,
