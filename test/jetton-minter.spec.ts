@@ -66,7 +66,7 @@ describe("minter tests", () => {
     it("should handle burn notifications", async () => {
         contract.setDataCell(
             minter.data({
-                totalSupply: toNano(700000),
+                totalSupply: toNano(800000),
                 adminAddress: admin,
                 content: createOffchainUriCell("https://usdt/token.json"),
                 jettonWalletCode: Cell.fromBoc(fs.readFileSync("build/jetton-wallet.cell"))[0],
@@ -103,6 +103,11 @@ describe("minter tests", () => {
 
         expect(sendBurnNotification.type).to.be.equal("success");
         expect(sendBurnNotification.actionList.length).to.be.equal(0);
+
+        const callJettonData = await contract.invokeGetMethod("get_jetton_data", []);
+
+        expect(callJettonData.type).to.equal("success");
+        expect((callJettonData.result[0] as BN).toString()).to.be.equal(toNano(100000).toString());
     });
 
     it("should change admin", async () => {
