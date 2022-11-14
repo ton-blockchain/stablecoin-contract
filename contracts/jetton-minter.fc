@@ -58,7 +58,12 @@
         return ();
     }
     slice sender_address = cs~load_msg_addr();
-  
+    cs~load_msg_addr(); ;; skip dst
+    cs~load_coins(); ;; skip value
+    cs~skip_bits(1); ;; skip extracurrency collection
+    cs~load_coins(); ;; skip ihr_fee
+    int fwd_fee = muldiv(cs~load_coins(), 3, 2); ;; we use message fwd_fee for estimation of provide_wallet_address cost
+      
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
 
@@ -96,6 +101,33 @@
             .store_uint(query_id, 64);
           send_raw_message(msg.end_cell(), 2 + 64);
         }
+        return ();
+    }
+
+    if (op == op::provide_wallet_address) {
+        throw_unless(75, msg_value > fwd_fee + provide_address_gas_consumption);
+
+        slice owner_address = in_msg_body~load_msg_addr();
+        int include_address? = in_msg_body~load_uint(1);
+
+        cell included_address = include_address?
+                ? begin_cell().store_slice(owner_address).end_cell()
+                : null();
+
+        var msg = begin_cell()
+                .store_uint(0x18, 6)
+                .store_slice(sender_address)
+                .store_coins(0)
+                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                .store_uint(op::take_wallet_address, 32)
+                .store_uint(query_id, 64);
+
+        if (is_resolvable?(owner_address)) {
+            msg = msg.store_slice(calculate_user_jetton_wallet_address(owner_address, my_address(), jetton_wallet_code));
+        } else {
+            msg = msg.store_uint(0, 2); ;; addr_none
+        }
+        send_raw_message(msg.store_maybe_ref(included_address).end_cell(), 64);
         return ();
     }
 

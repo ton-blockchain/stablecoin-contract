@@ -7,6 +7,9 @@ const op::excesses = 0xd53276db;
 const op::burn = 0x595f07bc;
 const op::burn_notification = 0x7bdd97de;
 
+const op::provide_wallet_address = 0x2c76b973;
+const op::take_wallet_address = 0xd1735400;
+
 const error::invalid_op = 72;
 const error::wrong_op = 0xffff;
 const error::not_owner = 73;

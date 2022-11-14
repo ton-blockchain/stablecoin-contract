@@ -4,3 +4,11 @@ const workchain = 0;
   (int wc, _) = parse_std_addr(addr);
   throw_unless(error::wrong_workchain, wc == workchain);
 }
+
+int is_resolvable?(slice addr) inline {
+    (int wc, _) = parse_std_addr(addr);
+
+    return wc == workchain;
+}
+
+const provide_address_gas_consumption = 10000000;
