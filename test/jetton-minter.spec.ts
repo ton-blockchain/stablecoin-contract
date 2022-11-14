@@ -22,7 +22,7 @@ describe("minter tests", () => {
             minter.data({
                 totalSupply: new BN(0),
                 adminAddress: admin,
-                content: createOffchainUriCell("https://usdt.to/token.json"),
+                content: createOffchainUriCell("http://ton-stable.ton/token.json"),
                 jettonWalletCode: Cell.fromBoc(fs.readFileSync("build/jetton-wallet.cell"))[0],
             })
         );
@@ -68,7 +68,7 @@ describe("minter tests", () => {
             minter.data({
                 totalSupply: toNano(800000),
                 adminAddress: admin,
-                content: createOffchainUriCell("https://usdt/token.json"),
+                content: createOffchainUriCell("http://ton-stable.ton/token.json"),
                 jettonWalletCode: Cell.fromBoc(fs.readFileSync("build/jetton-wallet.cell"))[0],
             })
         );
@@ -140,7 +140,7 @@ describe("minter tests", () => {
     });
 
     it("should change content", async () => {
-        let newUrl = "https://newusdt.to/token.json";
+        let newUrl = "http://new-ton-stable.ton/token.json";
 
         const sendChangeContentFailed = await contract.sendInternalMessage(
             internalMessage({

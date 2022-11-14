@@ -1,6 +1,6 @@
-# TON-USDT
+# TON-STABLE
 
-FunC smart contracts for USDT Jetton on TON.
+FunC smart contracts for Stable Jetton on TON (for instance equivalent of US Dollar).
 
 These are [standard TON jetton smart contracts](https://github.com/ton-blockchain/token-contract/tree/369ae089255edbd807eb499792a0a838c2e1b272/ft) with additional functionality:
 
