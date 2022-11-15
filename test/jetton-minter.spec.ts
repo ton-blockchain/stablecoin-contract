@@ -22,7 +22,6 @@ describe("minter tests", () => {
             minter.data({
                 totalSupply: new BN(0),
                 adminAddress: admin,
-                content: createOffchainUriCell("http://ton-stable.ton/token.json"),
                 jettonWalletCode: Cell.fromBoc(fs.readFileSync("build/jetton-wallet.cell"))[0],
             })
         );
@@ -68,7 +67,6 @@ describe("minter tests", () => {
             minter.data({
                 totalSupply: toNano(800000),
                 adminAddress: admin,
-                content: createOffchainUriCell("http://ton-stable.ton/token.json"),
                 jettonWalletCode: Cell.fromBoc(fs.readFileSync("build/jetton-wallet.cell"))[0],
             })
         );
@@ -137,37 +135,6 @@ describe("minter tests", () => {
             })
         );
         expect(sendChangeAdminFailed.type).to.be.equal("failed");
-    });
-
-    it("should change content", async () => {
-        let newUrl = "http://new-ton-stable.ton/token.json";
-
-        const sendChangeContentFailed = await contract.sendInternalMessage(
-            internalMessage({
-                from: alice,
-                value: toNano(70000000),
-                body: minter.changeContent({
-                    newContent: createOffchainUriCell(newUrl + "!"),
-                }),
-            })
-        );
-        expect(sendChangeContentFailed.type).to.be.equal("failed");
-
-
-        const sendChangeContent = await contract.sendInternalMessage(
-            internalMessage({
-                from: admin,
-                value: toNano(70000000),
-                body: minter.changeContent({
-                    newContent: createOffchainUriCell(newUrl),
-                }),
-            })
-        );
-        expect(sendChangeContent.type).to.be.equal("success");
-
-        const callJettonData = await contract.invokeGetMethod("get_jetton_data", []);
-        expect(callJettonData.type).to.equal("success");
-        expect(parseOffchainUriCell(callJettonData.result[3] as Cell)).to.be.equal(newUrl);
     });
 
     it("should upgrade minter contract", async () => {

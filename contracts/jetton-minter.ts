@@ -5,13 +5,11 @@ import { beginMessage } from "./helpers";
 export function data(params: {
     totalSupply: BN;
     adminAddress: Address;
-    content: Cell;
     jettonWalletCode: Cell;
 }): Cell {
     return beginCell()
         .storeCoins(params.totalSupply)
         .storeAddress(params.adminAddress)
-        .storeRef(params.content)
         .storeRef(params.jettonWalletCode)
         .endCell();
 }
@@ -42,12 +40,6 @@ export function burnNotification(params: { jettonAmount: BN; fromAddress: Addres
 export function changeAdmin(params: { newAdmin: Address }): Cell {
     return beginMessage({ op: new BN(3) })
         .storeAddress(params.newAdmin)
-        .endCell();
-}
-
-export function changeContent(params: { newContent: Cell }): Cell {
-    return beginMessage({ op: new BN(4) })
-        .storeRef(params.newContent)
         .endCell();
 }
 
