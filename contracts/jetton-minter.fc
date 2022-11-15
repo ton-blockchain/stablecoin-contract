@@ -71,6 +71,7 @@
         throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
         slice to_address = in_msg_body~load_msg_addr();
         int amount = in_msg_body~load_coins();
+        throw_unless(error::invalid_op, amount >= mint_gas_consumption + fwd_fee);
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
         throw_unless(error::invalid_op, master_msg_cs~load_uint(32) == op::internal_transfer);

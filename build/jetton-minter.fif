@@ -162,14 +162,20 @@ PROGRAM{
     IFJMP:<{
       s4 POP
       s4 POP
-      s5 POP
-      s5 POP
-      s2 s1 XCPU
+      s6 POP
+      s3 s2 XCPU
       SDEQ
       73 THROWIFNOT
-      s0 s3 XCHG
+      s0 s2 XCHG
       LDMSGADDR
       LDGRAMS
+      20000000 PUSHINT
+      s0 s6 XCHG2
+      ADD
+      s1 s(-1) PUXC
+      GEQ
+      72 THROWIFNOT
+      s0 s4 XCHG
       LDREF
       DROP
       DUP
@@ -183,14 +189,12 @@ PROGRAM{
       SDSKIPFIRST
       LDGRAMS
       DROP
-      s4 PUSH
-      s3 s4 XCHG
-      s4 s2 XCHG2
+      s4 s5 s(-1) PUXC2
       1 PUSHINT
       send_to_jetton_wallet CALLDICT
-      s1 s2 XCHG
+      2SWAP
       ADD
-      -ROT
+      s0 s2 XCHG
       save_data INLINECALLDICT
     }>
     s5 PUSH
@@ -353,7 +357,9 @@ PROGRAM{
   }>
   build_content_cell PROC:<{
     NEWDICT
+    0 PUSHINT
     NEWC
+    8 STU
     x{746f6e2d737461626c652e746f6e} PUSHSLICE
     STSLICER
     ENDC
@@ -361,7 +367,9 @@ PROGRAM{
     ROT
     8 PUSHPOW2
     DICTUSETREF
+    0 PUSHINT
     NEWC
+    8 STU
     x{39} PUSHSLICE
     STSLICER
     ENDC
@@ -369,7 +377,9 @@ PROGRAM{
     ROT
     8 PUSHPOW2
     DICTUSETREF
+    0 PUSHINT
     NEWC
+    8 STU
     x{546f6e20537461626c6520436f696e} PUSHSLICE
     STSLICER
     ENDC
@@ -377,7 +387,9 @@ PROGRAM{
     ROT
     8 PUSHPOW2
     DICTUSETREF
+    0 PUSHINT
     NEWC
+    8 STU
     x{f09f92b5} PUSHSLICE
     STSLICER
     ENDC
