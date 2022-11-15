@@ -5,3 +5,4 @@ node_modules
 !.env.example
 .wget-hsts
 bin
+.DS_Store

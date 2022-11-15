@@ -54,7 +54,7 @@ describe("minter tests", () => {
         );
 
         expect(sendMintTokens.type).to.be.equal("success");
-        expect((sendMintTokens.actionList[0] as SendMsgAction).message.info.dest?.toString()).to.be.equal(Address.parseFriendly("EQBe2eJEEHqk6OHu0No0epXXgNpltyyTNddNX9KPySMVmbbY").address.toString());
+        expect((sendMintTokens.actionList[0] as SendMsgAction).message.info.dest?.toString()).to.be.equal(Address.parseFriendly("EQAs7a2eaGurWP6J4xfIt78j7bdueLnUwyxghyOyOyqACRje").address.toString());
 
         const callJettonData = await contract.invokeGetMethod("get_jetton_data", []);
 
