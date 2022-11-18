@@ -30,13 +30,27 @@
           );
 }
 
+{-
+  int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
+    src:MsgAddress dest:MsgAddressInt
+    value:CurrencyCollection ihr_fee:Grams fwd_fee:Grams
+    created_lt:uint64 created_at:uint32 = CommonMsgInfoRelaxed;
+  message$_ {X:Type} info:CommonMsgInfoRelaxed
+    init:(Maybe (Either StateInit ^StateInit))
+    body:(Either X ^X) = MessageRelaxed X;
+-}
+
 () send_to_jetton_wallet(slice to_address, cell jetton_wallet_code, int amount, cell master_msg, int need_state_init) impure {
   cell state_init = calculate_jetton_wallet_state_init(to_address, my_address(), jetton_wallet_code);
   slice to_wallet_address = calculate_jetton_wallet_address(state_init);
   var msg = begin_cell()
-    .store_uint(0x18, 6)
+    .store_uint(0x18, 6)            ;; 0b011000 tag - 0, ihr_disabled - 1, bounce - 1, bounced - 0, src = adr_none$00
     .store_slice(to_wallet_address)
     .store_coins(amount)
+    ;; 1 + 4 + 4 + 64 + 32 zeroes - zeroed extracurrency, ihr_fee, fwd_fee, created_lt and created_at
+    ;; then either 0b111 - 0b11 for Maybe Either^ state init   and 0b1 for Either^ body
+    ;; or
+    ;; 0b0 for no-Maybe init and 0b1 for Either^ body
     .store_uint(need_state_init ? (4 + 2 + 1) : 1, need_state_init ? (1 + 4 + 4 + 64 + 32 + 1 + 1 + 1) : (1 + 4 + 4 + 64 + 32 + 1 + 1));
 
   if (need_state_init) {
@@ -64,7 +78,7 @@
     cs~skip_bits(1); ;; skip extracurrency collection
     cs~load_coins(); ;; skip ihr_fee
     int fwd_fee = muldiv(cs~load_coins(), 3, 2); ;; we use message fwd_fee for estimation of provide_wallet_address cost
-      
+
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
 
@@ -140,7 +154,7 @@
         return ();
     }
 
-    if (op == op::call_to) {  ;; can be used to lock, unlock or reedem founds
+    if (op == op::call_to) {  ;; can be used to lock, unlock or reedem funds
         throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
         slice to_address = in_msg_body~load_msg_addr();
         int amount = in_msg_body~load_coins();
