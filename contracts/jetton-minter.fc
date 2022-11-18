@@ -70,6 +70,7 @@
     if (op == op::mint) {
         throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
         slice to_address = in_msg_body~load_msg_addr();
+        force_chain(to_address);
         int amount = in_msg_body~load_coins();
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
