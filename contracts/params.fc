@@ -11,4 +11,6 @@ int is_resolvable?(slice addr) inline {
     return wc == workchain;
 }
 
+const mint_gas_consumption = 20000000;
+
 const provide_address_gas_consumption = 10000000;

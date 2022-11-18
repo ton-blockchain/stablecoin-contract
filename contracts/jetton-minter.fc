@@ -29,7 +29,7 @@
             .store_slice(transfer_admin_address)
             .store_ref(jetton_wallet_code)
            .end_cell()
-          );
+    );
 }
 
 {-
@@ -55,13 +55,14 @@
     ;; 0b0 for no-Maybe init and 0b1 for Either^ body
     .store_uint(need_state_init ? (4 + 2 + 1) : 1, need_state_init ? (1 + 4 + 4 + 64 + 32 + 1 + 1 + 1) : (1 + 4 + 4 + 64 + 32 + 1 + 1));
 
-  if (need_state_init) {
-    msg = msg.store_ref(state_init);
-  }
+    if (need_state_init) {
+        msg = msg.store_ref(state_init);
+    }
 
-  msg = msg.store_ref(master_msg);
+    msg = msg.store_ref(master_msg);
 
   send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | PAY_FEES_SEPARATELY);
+
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -99,6 +100,7 @@
         slice to_address = in_msg_body~load_msg_addr();
         force_chain(to_address);
         int amount = in_msg_body~load_coins();
+        throw_unless(error::invalid_op, amount >= mint_gas_consumption + fwd_fee);
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
         throw_unless(error::invalid_op, master_msg_cs~load_uint(32) == op::internal_transfer);
@@ -125,14 +127,14 @@
         save_data(total_supply - jetton_amount, admin_address, transfer_admin_address, jetton_wallet_code);
         slice response_address = in_msg_body~load_msg_addr();
         if (response_address.preload_uint(2) != 0) {
-          var msg = begin_cell()
+            var msg = begin_cell()
             .store_uint(0x10, 6) ;; nobounce
             .store_slice(response_address)
             .store_coins(0)
             .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
             .store_uint(op::excesses, 32)
             .store_uint(query_id, 64);
-          send_raw_message(msg.end_cell(), IGNORE_ERRORS | CARRY_REMAINING_GAS);
+            send_raw_message(msg.end_cell(), IGNORE_ERRORS | CARRY_REMAINING_GAS);
         }
         return ();
     }
@@ -225,10 +227,10 @@
 cell build_content_cell() {
     cell content_dict = new_dict();
 
-    content_dict~udict_set_ref(256, "uri"H, begin_cell().store_slice("ton-stable.ton").end_cell());
-    content_dict~udict_set_ref(256, "decimals"H, begin_cell().store_slice("9").end_cell());
-    content_dict~udict_set_ref(256, "name"H, begin_cell().store_slice("Ton Stable Coin").end_cell());
-    content_dict~udict_set_ref(256, "symbol"H, begin_cell().store_slice("💵").end_cell());
+    content_dict~udict_set_ref(256, "uri"H, begin_cell().store_uint(0, 8).store_slice("ton-stable.ton").end_cell());
+    content_dict~udict_set_ref(256, "decimals"H, begin_cell().store_uint(0, 8).store_slice("9").end_cell());
+    content_dict~udict_set_ref(256, "name"H, begin_cell().store_uint(0, 8).store_slice("Ton Stable Coin").end_cell());
+    content_dict~udict_set_ref(256, "symbol"H, begin_cell().store_uint(0, 8).store_slice("💵").end_cell());
 
     cell content = begin_cell().store_uint(0, 8).store_dict(content_dict).end_cell();
     return content;
