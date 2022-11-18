@@ -29,7 +29,9 @@ const gas_consumption = 10000000; ;; 0.01 TON
 
 (int, int, slice, slice, cell) load_data() inline {
   slice ds = get_data().begin_parse();
-  return (ds~load_uint(4), ds~load_coins(), ds~load_msg_addr(), ds~load_msg_addr(), ds~load_ref());
+  var data = (ds~load_uint(4), ds~load_coins(), ds~load_msg_addr(), ds~load_msg_addr(), ds~load_ref());
+  ds.end_parse();
+  return data;
 }
 
 () save_data (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) impure inline {
