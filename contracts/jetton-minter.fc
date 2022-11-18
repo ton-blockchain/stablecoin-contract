@@ -71,7 +71,15 @@
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
 
-    if (flags & 1) { ;; ignore all bounced messages
+    if (flags & 1) { ;; process only mint bounces
+        in_msg_body~skip_bits(32);
+        ifnot(in_msg_body~load_uint(32) == op::internal_transfer) {
+          return ();
+        }
+        in_msg_body~skip_bits(64); ;; query_id
+        int jetton_amount = in_msg_body~load_coins();
+        (int total_supply, slice admin_address, slice transfer_admin_address, cell jetton_wallet_code) = load_data();
+        save_data(total_supply - jetton_amount, admin_address, transfer_admin_address, jetton_wallet_code);
         return ();
     }
     slice sender_address = cs~load_msg_addr();
