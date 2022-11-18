@@ -94,6 +94,13 @@
         throw_unless(error::invalid_op, master_msg_cs~load_uint(32) == op::internal_transfer);
         master_msg_cs~skip_bits(64); ;; query_id
         int jetton_amount = master_msg_cs~load_coins();
+        master_msg_cs~load_msg_addr();
+        master_msg_cs~load_msg_addr();
+        master_msg_cs~load_coins();
+        if( master_msg_cs~load_int(1)) {
+            master_msg_cs~load_ref();
+        }
+        master_msg_cs.end_parse();
         send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, 1);
         save_data(total_supply + jetton_amount, admin_address, jetton_wallet_code);
         return ();
@@ -161,7 +168,29 @@
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
         int master_op = master_msg_cs~load_uint(32);
-        throw_if(error::invalid_op, master_op == op::internal_transfer); ;; use `mint` to increase jettons supply
+        master_msg_cs~load_uint(64);
+        ;; parse-validate messages
+        if(master_op == op::transfer) {
+          master_msg_cs~load_coins();
+          master_msg_cs~load_msg_addr();
+          master_msg_cs~load_msg_addr();
+          master_msg_cs~load_maybe_ref();
+          master_msg_cs~load_coins();
+          if( master_msg_cs~load_int(1)) {
+            master_msg_cs~load_ref();
+          }
+          master_msg_cs.end_parse();
+        } elseif (master_op == op::burn) {
+          master_msg_cs~load_coins();
+          master_msg_cs~load_msg_addr();
+          master_msg_cs~load_maybe_ref();
+          master_msg_cs.end_parse();
+        } elseif (master_op == op::set_status) {
+          master_msg_cs~load_uint(4);
+          master_msg_cs.end_parse();
+        } else {
+          throw(error::invalid_op);
+        }
         send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, 0);
         return ();
     }
