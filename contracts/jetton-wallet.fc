@@ -16,6 +16,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
 
 #include "stdlib.fc";
 #include "op-codes.fc";
+#include "send-modes.fc";
 #include "params.fc";
 #include "jetton-utils.fc";
 
@@ -97,7 +98,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
                      ;; by using this instead of fwd_fee
                      ;; msg_fwd_fee(to_wallet, msg_body, state_init, 15)
 
-  send_raw_message(msg.end_cell(), 64); ;; revert on errors
+  send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | CARRY_REMAINING_GAS);
   save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
 }
 
@@ -147,7 +148,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
       .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
       .store_ref(msg_body);
 
-    send_raw_message(msg.end_cell(), 1);
+    send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | PAY_FEES_SEPARATELY);
   }
 
   if ((response_address.preload_uint(2) != 0) & (msg_value > 0)) {
@@ -158,7 +159,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
       .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
       .store_uint(op::excesses, 32)
       .store_uint(query_id, 64);
-    send_raw_message(msg.end_cell(), 2);
+    send_raw_message(msg.end_cell(), IGNORE_ERRORS);
   }
 
   save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
@@ -193,7 +194,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
     .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
     .store_ref(msg_body);
 
-  send_raw_message(msg.end_cell(), 64);
+  send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | CARRY_REMAINING_GAS);
 
   save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
 }

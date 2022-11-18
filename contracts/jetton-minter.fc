@@ -5,6 +5,7 @@
 #include "stdlib.fc";
 #include "op-codes.fc";
 #include "params.fc";
+#include "send-modes.fc";
 #include "jetton-utils.fc";
 
 ;; storage scheme
@@ -44,7 +45,7 @@
 
   msg = msg.store_ref(master_msg);
 
-  send_raw_message(msg.end_cell(), 1); ;; pay transfer fees separately, revert on errors
+  send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | PAY_FEES_SEPARATELY);
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -100,7 +101,7 @@
             .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
             .store_uint(op::excesses, 32)
             .store_uint(query_id, 64);
-          send_raw_message(msg.end_cell(), 2 + 64);
+          send_raw_message(msg.end_cell(), IGNORE_ERRORS | CARRY_REMAINING_GAS);
         }
         return ();
     }
@@ -128,7 +129,7 @@
         } else {
             msg = msg.store_uint(0, 2); ;; addr_none
         }
-        send_raw_message(msg.store_maybe_ref(included_address).end_cell(), 64);
+        send_raw_message(msg.store_maybe_ref(included_address).end_cell(), REVERT_ON_ERRORS | CARRY_REMAINING_GAS);
         return ();
     }
 
