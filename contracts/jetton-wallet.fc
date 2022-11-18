@@ -26,6 +26,9 @@ const gas_consumption = 10000000; ;; 0.01 TON
 {-
   Storage
 
+  Note, status==0 means unlocked - user can freely transfer jettons.
+  Any other status means locked - user can not transfer, but minter steel can.
+
   storage#_ status:uin4
             balance:Coins owner_address:MsgAddressInt
             jetton_master_address:MsgAddressInt jetton_wallet_code:^Cell = Storage;
@@ -198,7 +201,9 @@ const gas_consumption = 10000000; ;; 0.01 TON
   ;; ignore custom payload
   ;; slice custom_payload = in_msg_body~load_dict();
   balance -= jetton_amount;
-  throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | equal_slices(jetton_master_address, sender_address));
+  int is_from_master = equal_slices(jetton_master_address, sender_address);
+  throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | is_from_master);
+  throw_unless(error::contract_locked, (status == 0) | is_from_master);
   throw_unless(error::balance_error, balance >= 0);
   throw_unless(error::not_enought_gas, msg_value > fwd_fee + 2 * gas_consumption);
 
