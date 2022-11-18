@@ -109,6 +109,16 @@ describe("minter tests", () => {
     });
 
     it("should change admin", async () => {
+
+        const sendClaimAdminFailed1 = await contract.sendInternalMessage(
+            internalMessage({
+                from: admin,
+                value: toNano(70000000),
+                body: minter.claimAdmin(),
+            })
+        );
+        expect(sendChangeAdminFailed.type).to.be.equal("failed");
+
         const sendChangeAdmin = await contract.sendInternalMessage(
             internalMessage({
                 from: admin,
@@ -122,6 +132,27 @@ describe("minter tests", () => {
 
         const callJettonData = await contract.invokeGetMethod("get_jetton_data", []);
         expect(callJettonData.type).to.equal("success");
+        expect((callJettonData.result[2] as Slice).readAddress()?.toString()).to.be.equal(admin.toString());
+
+        const sendClaimAdminFailed2 = await contract.sendInternalMessage(
+            internalMessage({
+                from: admin,
+                value: toNano(70000000),
+                body: minter.claimAdmin(),
+            })
+        );
+        expect(sendChangeAdminFailed.type).to.be.equal("failed");
+
+        const sendClaimAdmin = await contract.sendInternalMessage(
+            internalMessage({
+                from: alice,
+                value: toNano(70000000),
+                body: minter.claimAdmin(),
+            })
+        );
+
+        const callJettonData = await contract.invokeGetMethod("get_jetton_data", []);
+        expect(callJettonData.type).to.equal("success");
         expect((callJettonData.result[2] as Slice).readAddress()?.toString()).to.be.equal(alice.toString());
 
 
@@ -132,6 +163,15 @@ describe("minter tests", () => {
                 body: minter.changeAdmin({
                     newAdmin: alice,
                 }),
+            })
+        );
+        expect(sendChangeAdminFailed.type).to.be.equal("failed");
+
+        const sendClaimAdminFailed3 = await contract.sendInternalMessage(
+            internalMessage({
+                from: alice,
+                value: toNano(70000000),
+                body: minter.claimAdmin(),
             })
         );
         expect(sendChangeAdminFailed.type).to.be.equal("failed");

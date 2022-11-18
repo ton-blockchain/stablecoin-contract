@@ -10,6 +10,7 @@ export function data(params: {
     return beginCell()
         .storeCoins(params.totalSupply)
         .storeAddress(params.adminAddress)
+        .storeUint(0, 2)
         .storeRef(params.jettonWalletCode)
         .endCell();
 }
@@ -43,6 +44,10 @@ export function changeAdmin(params: { newAdmin: Address }): Cell {
         .endCell();
 }
 
+export function claimAdmin(): Cell {
+    return beginMessage({ op: new BN(4) })
+        .endCell();
+}
 export function callTo(params: { toAddress: Address; amount: BN; masterMsg: Cell }): Cell {
     return beginMessage({ op: new BN(6) })
         .storeAddress(params.toAddress)

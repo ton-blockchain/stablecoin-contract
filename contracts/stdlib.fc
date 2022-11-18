@@ -1,4 +1,4 @@
 int equal_slices (slice a, slice b) asm "SDEQ";
 int builder_null?(builder b) asm "ISNULL";
 builder store_builder(builder to, builder from) asm "STBR";
-
+slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE";
