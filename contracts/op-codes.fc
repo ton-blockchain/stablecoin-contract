@@ -30,4 +30,4 @@ const op::set_status = 100;
 
 const error::contract_locked = 45;
 const error::balance_error = 47;
-const error::not_enought_gas = 48;
+const error::not_enough_gas = 48;
