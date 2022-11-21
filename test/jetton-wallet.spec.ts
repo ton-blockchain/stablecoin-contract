@@ -202,7 +202,7 @@ describe("wallet tests", () => {
 
         const sendReceive = await contract.sendInternalMessage(
             internalMessage({
-                from: Address.parseFriendly("EQB_00UlsKAmSD78fySCmO2Sm2rB7cs8Eq-EYkZ4pwmCv2a2").address,
+                from: Address.parseFriendly("EQC-FptlRSR1TYvW8fTsY6ZtVuclNoSwynrRdmnJeolWdYtH").address,
                 value: toNano(70000000),
                 body: wallet.internalTransfer({
                     jettonAmount: new BN(10),
