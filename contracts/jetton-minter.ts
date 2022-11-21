@@ -26,6 +26,7 @@ export function mint(params: { toAddress: Address; gasAmount: BN, jettonAmount: 
             .storeAddress(params.fromAddress || null)
             .storeAddress(params.responseAddress || null)
             .storeCoins(params.forwardTonAmount || new BN(0))
+            .storeUint(0, 1)
             .endCell())
         .endCell();
 }
