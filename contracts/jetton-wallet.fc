@@ -27,9 +27,9 @@ const gas_consumption = 10000000; ;; 0.01 TON
   Storage
 
   Note, status==0 means unlocked - user can freely transfer jettons.
-  Any other status means locked - user can not transfer, but minter steel can.
+  Any other status means locked - user can not transfer, but minter still can.
 
-  storage#_ status:uin4
+  storage#_ status:uint4
             balance:Coins owner_address:MsgAddressInt
             jetton_master_address:MsgAddressInt jetton_wallet_code:^Cell = Storage;
 -}
@@ -102,7 +102,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
                      (2 * gas_consumption + min_tons_for_storage));
                      ;; This amount is calculated under two assumptions:
                      ;; 1) 2 * gas_consumption + min_tons_for_storage strictly less than 2 * max_tx_gas_price
-                     ;; 2) gas_consumption will not grow, which is true if ConfigParam21 gas_limit is only decreases
+                     ;; 2) gas_consumption will not grow, which is true if ConfigParam21 gas_limit only decreases
                      ;; universal message send fee calculation may be activated here
                      ;; by using this instead of fwd_fee
                      ;; msg_fwd_fee(to_wallet, msg_body, state_init, 15)
