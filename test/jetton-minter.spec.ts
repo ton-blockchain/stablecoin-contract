@@ -54,7 +54,7 @@ describe("minter tests", () => {
         );
 
         expect(sendMintTokens.type).to.be.equal("success");
-        expect((sendMintTokens.actionList[0] as SendMsgAction).message.info.dest?.toString()).to.be.equal(Address.parseFriendly("EQAs7a2eaGurWP6J4xfIt78j7bdueLnUwyxghyOyOyqACRje").address.toString());
+        expect(sendMintTokens.actionList.length).to.be.equal(1);
 
         const callJettonData = await contract.invokeGetMethod("get_jetton_data", []);
 
@@ -109,6 +109,16 @@ describe("minter tests", () => {
     });
 
     it("should change admin", async () => {
+
+        const sendClaimAdminFailed1 = await contract.sendInternalMessage(
+            internalMessage({
+                from: admin,
+                value: toNano(70000000),
+                body: minter.claimAdmin(),
+            })
+        );
+        expect(sendClaimAdminFailed1.type).to.be.equal("failed");
+
         const sendChangeAdmin = await contract.sendInternalMessage(
             internalMessage({
                 from: admin,
@@ -122,7 +132,28 @@ describe("minter tests", () => {
 
         const callJettonData = await contract.invokeGetMethod("get_jetton_data", []);
         expect(callJettonData.type).to.equal("success");
-        expect((callJettonData.result[2] as Slice).readAddress()?.toString()).to.be.equal(alice.toString());
+        expect((callJettonData.result[2] as Slice).readAddress()?.toString()).to.be.equal(admin.toString());
+
+        const sendClaimAdminFailed2 = await contract.sendInternalMessage(
+            internalMessage({
+                from: admin,
+                value: toNano(70000000),
+                body: minter.claimAdmin(),
+            })
+        );
+        expect(sendClaimAdminFailed2.type).to.be.equal("failed");
+
+        const sendClaimAdmin = await contract.sendInternalMessage(
+            internalMessage({
+                from: alice,
+                value: toNano(70000000),
+                body: minter.claimAdmin(),
+            })
+        );
+
+        const callJettonData2 = await contract.invokeGetMethod("get_jetton_data", []);
+        expect(callJettonData2.type).to.equal("success");
+        expect((callJettonData2.result[2] as Slice).readAddress()?.toString()).to.be.equal(alice.toString());
 
 
         const sendChangeAdminFailed = await contract.sendInternalMessage(
@@ -132,6 +163,15 @@ describe("minter tests", () => {
                 body: minter.changeAdmin({
                     newAdmin: alice,
                 }),
+            })
+        );
+        expect(sendChangeAdminFailed.type).to.be.equal("failed");
+
+        const sendClaimAdminFailed3 = await contract.sendInternalMessage(
+            internalMessage({
+                from: alice,
+                value: toNano(70000000),
+                body: minter.claimAdmin(),
             })
         );
         expect(sendChangeAdminFailed.type).to.be.equal("failed");
@@ -164,7 +204,7 @@ describe("minter tests", () => {
         expect(sendUpgradeContract.actionList[0].type).to.be.equal("set_code");
     });
 
-    it("should send messagges to wallets", async () => {
+    it("should not send arbitrary messagge to wallets", async () => {
         const sendMsgToWalletNotAdmin = await contract.sendInternalMessage(
             internalMessage({
                 from: alice,
@@ -177,7 +217,6 @@ describe("minter tests", () => {
             })
         );
         expect(sendMsgToWalletNotAdmin.type).to.be.equal("failed");
-        expect(sendMsgToWalletNotAdmin.actionList.length).to.be.equal(0);
 
         const sendMsgToWalletIntTransf = await contract.sendInternalMessage(
             internalMessage({
@@ -186,12 +225,11 @@ describe("minter tests", () => {
                 body: minter.callTo({
                     toAddress: alice,
                     amount: toNano(70000),
-                    masterMsg: beginCell().storeUint(0x178d4519, 32).endCell(),
+                    masterMsg: beginCell().storeUint(0xf8a7ea5, 32).endCell(),
                 }),
             })
         );
         expect(sendMsgToWalletIntTransf.type).to.be.equal("failed");
-        expect(sendMsgToWalletIntTransf.actionList.length).to.be.equal(0);
 
         const sendMessageToWallet = await contract.sendInternalMessage(
             internalMessage({
@@ -204,7 +242,30 @@ describe("minter tests", () => {
                 }),
             })
         );
-        expect(sendMessageToWallet.type).to.be.equal("success");
-        expect(sendMessageToWallet.actionList.length).to.be.equal(1);
+        expect(sendMessageToWallet.type).to.be.equal("failed");
+
+        const sendMsgToWalletOk = await contract.sendInternalMessage(
+            internalMessage({
+                from: admin,
+                value: toNano(70000000),
+                body: minter.callTo({
+                    toAddress: alice,
+                    amount: toNano(70000),
+                    masterMsg: beginCell()
+                        .storeUint(0xf8a7ea5, 32)
+                        .storeUint(0, 64)
+                        .storeCoins(new BN(10))
+                        .storeAddress(alice)
+                        .storeAddress(null)
+                        .storeBit(false)
+                        .storeCoins(new BN(0))
+                        .storeBit(false)
+                        .endCell(),
+                }),
+            })
+        );
+
+        expect(sendMsgToWalletOk.type).to.be.equal("success");
+
     });
 });

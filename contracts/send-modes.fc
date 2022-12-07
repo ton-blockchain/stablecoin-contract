@@ -1,0 +1,5 @@
+const REVERT_ON_ERRORS = 0;
+const PAY_FEES_SEPARATELY = 1;
+const IGNORE_ERRORS = 2;
+const CARRY_REMAINING_GAS = 64;
+

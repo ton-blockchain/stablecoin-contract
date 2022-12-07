@@ -73,13 +73,16 @@ PROGRAM{
     CTOS
     LDGRAMS
     LDMSGADDR
+    LDMSGADDR
     LDREF
-    DROP
+    ENDS
   }>
   save_data PROCINLINE:<{
     NEWC
-    s0 s3 XCHG2
+    s0 s4 XCHG2
     STGRAMS
+    ROT
+    STSLICER
     SWAP
     STSLICER
     STREF
@@ -138,7 +141,26 @@ PROGRAM{
     1 PUSHINT
     AND
     IFJMP:<{
-      3 BLKDROP
+      DROP
+      NIP
+      32 PUSHINT
+      SDSKIPFIRST
+      32 LDU
+      SWAP
+      395134233 PUSHINT
+      EQUAL
+      IFNOTJMP:<{
+        DROP
+      }>
+      64 PUSHINT
+      SDSKIPFIRST
+      LDGRAMS
+      DROP
+      load_data INLINECALLDICT
+      s3 s4 XCHG2
+      SUB
+      s2 s3 XCHG2
+      save_data INLINECALLDICT
     }>
     LDMSGADDR
     LDMSGADDR
@@ -157,25 +179,26 @@ PROGRAM{
     32 LDU
     64 LDU
     load_data INLINECALLDICT
-    s5 PUSH
+    s6 PUSH
     21 EQINT
     IFJMP:<{
-      s4 POP
-      s4 POP
-      s6 POP
-      s3 s2 XCPU
+      s5 POP
+      s5 POP
+      s7 POP
+      s4 s6 XCPU
       SDEQ
       73 THROWIFNOT
-      s0 s2 XCHG
       LDMSGADDR
+      OVER
+      force_chain CALLDICT
       LDGRAMS
       20000000 PUSHINT
-      s0 s6 XCHG2
+      s0 s7 XCHG2
       ADD
       s1 s(-1) PUXC
       GEQ
       72 THROWIFNOT
-      s0 s4 XCHG
+      s0 s5 XCHG
       LDREF
       DROP
       DUP
@@ -188,34 +211,48 @@ PROGRAM{
       64 PUSHINT
       SDSKIPFIRST
       LDGRAMS
-      DROP
-      s4 s5 s(-1) PUXC2
+      LDMSGADDR
+      NIP
+      LDMSGADDR
+      NIP
+      LDGRAMS
+      NIP
+      1 LDI
+      SWAP
+      IF:<{
+        LDREF
+        NIP
+      }>
+      ENDS
+      s3 s6 s(-1) PUXC2
       1 PUSHINT
       send_to_jetton_wallet CALLDICT
-      2SWAP
+      s2 s3 XCHG2
       ADD
-      s0 s2 XCHG
+      s3 s1 s3 XCHG3
       save_data INLINECALLDICT
     }>
-    s5 PUSH
+    s6 PUSH
     2078119902 PUSHINT
     EQUAL
     IFJMP:<{
-      s5 POP
       s6 POP
-      s6 POP
+      s7 POP
+      s7 POP
+      SWAP
       LDGRAMS
       LDMSGADDR
       MYADDR
-      s2 s0 s5 XC2PU
+      s2 s0 s6 XC2PU
       calculate_user_jetton_wallet_address INLINECALLDICT
-      s0 s5 XCHG2
+      s0 s6 XCHG2
       SDEQ
       74 THROWIFNOT
-      s1 s5 XCHG
       SUB
-      s0 s3 s3 XCHG3
+      s0 s3 XCHG
+      s5 s4 s5 XCHG3
       save_data INLINECALLDICT
+      SWAP
       LDMSGADDR
       DROP
       DUP
@@ -242,12 +279,12 @@ PROGRAM{
         2DROP
       }>
     }>
-    s5 PUSH
+    s6 PUSH
     745978227 PUSHINT
     EQUAL
     IFJMP:<{
-      s5 POP
-      2DROP
+      s6 POP
+      3 BLKDROP
       s0 s4 XCHG
       10000000 PUSHINT
       ADD
@@ -299,30 +336,45 @@ PROGRAM{
       64 PUSHINT
       SENDRAWMSG
     }>
-    s4 POP
-    s6 POP
-    s6 POP
-    s2 PUSH
+    s5 POP
+    s7 POP
+    s7 POP
+    s3 PUSH
     3 EQINT
     IFJMP:<{
-      s2 POP
-      s2 s3 XCHG2
+      s3 POP
+      s4 POP
+      s2 s4 XCPU
       SDEQ
       73 THROWIFNOT
+      s0 s2 XCHG
       LDMSGADDR
       DROP
-      SWAP
+      s3 s0 s0 XCHG3
       save_data INLINECALLDICT
     }>
-    s5 POP
+    s3 PUSH
+    4 EQINT
+    IFJMP:<{
+      NIP
+      s2 POP
+      s4 POP
+      s1 s2 XCPU
+      SDEQ
+      73 THROWIFNOT
+      <b 0 2 u, b> <s PUSHSLICE
+      s0 s3 XCHG2
+      save_data INLINECALLDICT
+    }>
+    DROP
+    s4 POP
     OVER
     6 EQINT
     IFJMP:<{
       NIP
-      s0 s2 XCHG
+      s0 s3 XCHG
       SDEQ
       73 THROWIFNOT
-      SWAP
       LDMSGADDR
       LDGRAMS
       LDREF
@@ -330,10 +382,56 @@ PROGRAM{
       DUP
       CTOS
       32 LDU
-      DROP
-      395134233 PUSHINT
+      64 LDU
+      NIP
+      OVER
+      260734629 PUSHINT
       EQUAL
-      72 THROWIF
+      IF:<{
+        NIP
+        LDGRAMS
+        NIP
+        LDMSGADDR
+        NIP
+        LDMSGADDR
+        NIP
+        LDOPTREF
+        NIP
+        LDGRAMS
+        NIP
+        1 LDI
+        SWAP
+        IF:<{
+          LDREF
+          NIP
+        }>
+        ENDS
+      }>ELSE<{
+        OVER
+        1499400124 PUSHINT
+        EQUAL
+        IF:<{
+          NIP
+          LDGRAMS
+          NIP
+          LDMSGADDR
+          NIP
+          LDOPTREF
+          NIP
+          ENDS
+        }>ELSE<{
+          SWAP
+          100 EQINT
+          IF:<{
+            4 LDU
+            NIP
+            ENDS
+          }>ELSE<{
+            DROP
+            72 THROW
+          }>
+        }>
+      }>
       s2 s3 XCHG
       0 PUSHINT
       send_to_jetton_wallet CALLDICT
@@ -341,7 +439,7 @@ PROGRAM{
     DROP
     5 EQINT
     IFJMP:<{
-      SWAP
+      ROT
       SDEQ
       73 THROWIFNOT
       LDREF
@@ -405,13 +503,14 @@ PROGRAM{
   }>
   get_jetton_data PROC:<{
     load_data INLINECALLDICT
+    NIP
     -1 PUSHINT
     build_content_cell CALLDICT
     s3 s0 s3 XCHG3
   }>
   get_wallet_address PROC:<{
     load_data INLINECALLDICT
-    2 1 BLKDROP2
+    3 1 BLKDROP2
     MYADDR
     SWAP
     calculate_user_jetton_wallet_address INLINECALLDICT

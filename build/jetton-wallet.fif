@@ -78,7 +78,7 @@ PROGRAM{
     LDMSGADDR
     LDMSGADDR
     LDREF
-    DROP
+    ENDS
   }>
   save_data PROCINLINE:<{
     pack_jetton_wallet_data INLINECALLDICT
@@ -285,13 +285,18 @@ PROGRAM{
     DROP
     s5 s1 XCPU
     SUB
-    s4 s9 PUSH2
+    s3 s9 PUSH2
     SDEQ
-    s4 s10 PUXC
+    s5 s10 PUXC
     SDEQ
-    s1 s10 XCHG
+    s10 PUSH
     OR
     73 THROWIFNOT
+    s6 PUSH
+    0 EQINT
+    s0 s10 XCHG2
+    OR
+    45 THROWIFNOT
     s8 PUSH
     -1 GTINT
     47 THROWIFNOT

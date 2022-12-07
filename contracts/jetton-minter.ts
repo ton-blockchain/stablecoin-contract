@@ -10,6 +10,7 @@ export function data(params: {
     return beginCell()
         .storeCoins(params.totalSupply)
         .storeAddress(params.adminAddress)
+        .storeUint(0, 2)
         .storeRef(params.jettonWalletCode)
         .endCell();
 }
@@ -25,6 +26,7 @@ export function mint(params: { toAddress: Address; gasAmount: BN, jettonAmount: 
             .storeAddress(params.fromAddress || null)
             .storeAddress(params.responseAddress || null)
             .storeCoins(params.forwardTonAmount || new BN(0))
+            .storeUint(0, 1)
             .endCell())
         .endCell();
 }
@@ -43,6 +45,10 @@ export function changeAdmin(params: { newAdmin: Address }): Cell {
         .endCell();
 }
 
+export function claimAdmin(): Cell {
+    return beginMessage({ op: new BN(4) })
+        .endCell();
+}
 export function callTo(params: { toAddress: Address; amount: BN; masterMsg: Cell }): Cell {
     return beginMessage({ op: new BN(6) })
         .storeAddress(params.toAddress)

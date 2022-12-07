@@ -16,6 +16,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
 
 #include "stdlib.fc";
 #include "op-codes.fc";
+#include "send-modes.fc";
 #include "params.fc";
 #include "jetton-utils.fc";
 
@@ -24,12 +25,20 @@ const gas_consumption = 10000000; ;; 0.01 TON
 
 {-
   Storage
-  storage#_ balance:Coins owner_address:MsgAddressInt jetton_master_address:MsgAddressInt jetton_wallet_code:^Cell = Storage;
+
+  Note, status==0 means unlocked - user can freely transfer jettons.
+  Any other status means locked - user can not transfer, but minter still can.
+
+  storage#_ status:uint4
+            balance:Coins owner_address:MsgAddressInt
+            jetton_master_address:MsgAddressInt jetton_wallet_code:^Cell = Storage;
 -}
 
 (int, int, slice, slice, cell) load_data() inline {
   slice ds = get_data().begin_parse();
-  return (ds~load_uint(4), ds~load_coins(), ds~load_msg_addr(), ds~load_msg_addr(), ds~load_ref());
+  var data = (ds~load_uint(4), ds~load_coins(), ds~load_msg_addr(), ds~load_msg_addr(), ds~load_ref());
+  ds.end_parse();
+  return data;
 }
 
 () save_data (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) impure inline {
@@ -37,15 +46,15 @@ const gas_consumption = 10000000; ;; 0.01 TON
 }
 
 {-
-  transfer query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
-           response_destination:MsgAddress custom_payload:(Maybe ^Cell)
-           forward_ton_amount:(VarUInteger 16) forward_payload:(Either Cell ^Cell)
-           = InternalMsgBody;
-  internal_transfer  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
-                     response_address:MsgAddress
-                     forward_ton_amount:(VarUInteger 16)
-                     forward_payload:(Either Cell ^Cell) 
-                     = InternalMsgBody;
+  transfer#0f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
+                   response_destination:MsgAddress custom_payload:(Maybe ^Cell)
+                   forward_ton_amount:(VarUInteger 16) forward_payload:(Either Cell ^Cell)
+                   = InternalMsgBody;
+  internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
+                             response_address:MsgAddress
+                             forward_ton_amount:(VarUInteger 16)
+                             forward_payload:(Either Cell ^Cell)
+                             = InternalMsgBody;
 -}
 
 () send_tokens (slice in_msg_body, slice sender_address, int msg_value, int fwd_fee) impure {
@@ -85,26 +94,36 @@ const gas_consumption = 10000000; ;; 0.01 TON
 
   msg = msg.store_ref(msg_body);
   int fwd_count = forward_ton_amount ? 2 : 1;
-  throw_unless(error::not_enought_gas, msg_value >
+  throw_unless(error::not_enough_gas, msg_value >
                      forward_ton_amount +
                      ;; 3 messages: wal1->wal2,  wal2->owner, wal2->response
                      ;; but last one is optional (it is ok if it fails)
                      fwd_count * fwd_fee +
                      (2 * gas_consumption + min_tons_for_storage));
+                     ;; This amount is calculated under two assumptions:
+                     ;; 1) 2 * gas_consumption + min_tons_for_storage strictly less than 2 * max_tx_gas_price
+                     ;; 2) gas_consumption will not grow, which is true if ConfigParam21 gas_limit only decreases
                      ;; universal message send fee calculation may be activated here
                      ;; by using this instead of fwd_fee
                      ;; msg_fwd_fee(to_wallet, msg_body, state_init, 15)
+                     ;; and reading ConfigParam21 gas_limit
 
-  send_raw_message(msg.end_cell(), 64); ;; revert on errors
+  send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | CARRY_REMAINING_GAS);
   save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
 }
 
 {-
-  internal_transfer  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
-                     response_address:MsgAddress
-                     forward_ton_amount:(VarUInteger 16)
-                     forward_payload:(Either Cell ^Cell) 
-                     = InternalMsgBody;
+  internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
+                             response_address:MsgAddress
+                             forward_ton_amount:(VarUInteger 16)
+                             forward_payload:(Either Cell ^Cell)
+                             = InternalMsgBody;
+
+  transfer_notification#7362d09c query_id:uint64 amount:(VarUInteger 16)
+                                 sender:MsgAddress forward_payload:(Either Cell ^Cell)
+                                 = InternalMsgBody;
+
+  excesses#d53276db query_id:uint64 = InternalMsgBody;
 -}
 
 () receive_tokens (slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
@@ -145,7 +164,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
       .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
       .store_ref(msg_body);
 
-    send_raw_message(msg.end_cell(), 1);
+    send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | PAY_FEES_SEPARATELY);
   }
 
   if ((response_address.preload_uint(2) != 0) & (msg_value > 0)) {
@@ -156,11 +175,21 @@ const gas_consumption = 10000000; ;; 0.01 TON
       .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
       .store_uint(op::excesses, 32)
       .store_uint(query_id, 64);
-    send_raw_message(msg.end_cell(), 2);
+    send_raw_message(msg.end_cell(), IGNORE_ERRORS);
   }
 
   save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
 }
+
+{-
+  burn#595f07bc query_id:uint64 amount:(VarUInteger 16)
+                response_destination:MsgAddress custom_payload:(Maybe ^Cell)
+                = InternalMsgBody;
+
+  burn_notification#7bdd97de query_id:uint64 amount:(VarUInteger 16)
+                     sender:MsgAddress response_destination:MsgAddress
+                     = InternalMsgBody;
+-}
 
 () burn_tokens (slice in_msg_body, slice sender_address, int msg_value, int fwd_fee) impure {
   ;; NOTE we can not allow fails in action phase since in that case there will be
@@ -172,9 +201,11 @@ const gas_consumption = 10000000; ;; 0.01 TON
   ;; ignore custom payload
   ;; slice custom_payload = in_msg_body~load_dict();
   balance -= jetton_amount;
-  throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | equal_slices(jetton_master_address, sender_address));
+  int is_from_master = equal_slices(jetton_master_address, sender_address);
+  throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | is_from_master);
+  throw_unless(error::contract_locked, (status == 0) | is_from_master);
   throw_unless(error::balance_error, balance >= 0);
-  throw_unless(error::not_enought_gas, msg_value > fwd_fee + 2 * gas_consumption);
+  throw_unless(error::not_enough_gas, msg_value > fwd_fee + 2 * gas_consumption);
 
   var msg_body = begin_cell()
       .store_uint(op::burn_notification, 32)
@@ -191,7 +222,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
     .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
     .store_ref(msg_body);
 
-  send_raw_message(msg.end_cell(), 64);
+  send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | CARRY_REMAINING_GAS);
 
   save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
 }

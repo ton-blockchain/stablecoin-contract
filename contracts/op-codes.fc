@@ -20,7 +20,7 @@ const error::wrong_workchain = 333;
 
 const op::mint = 21;
 const op::change_admin = 3;
-const op::change_content = 4;
+const op::claim_admin = 4;
 const op::upgrade = 5;
 const op::call_to = 6;
 
@@ -30,4 +30,4 @@ const op::set_status = 100;
 
 const error::contract_locked = 45;
 const error::balance_error = 47;
-const error::not_enought_gas = 48;
+const error::not_enough_gas = 48;
