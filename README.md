@@ -2,6 +2,9 @@
 
 FunC smart contracts for Stable Jetton on TON (for instance equivalent of US Dollar) issued by central entity.
 
+## Contract audit
+Contract was [audited by Certik](https://www.certik.com/projects/the-open-network?utm_source=CoinGecko&utm_campaign=AuditByCertiKLink) and all findings have been addressed.
+
 # Targets and goals
 
 This project was created to allow users to exchange and buy assets in the TON DeFi ecosystem for a jetton (token or currency) that is not subject to volatile fluctuations. To meet regulatory requirements, the issuer of the tokens must have additional control over the tokens.
