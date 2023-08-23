@@ -1,18 +1,19 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, toNano } from '@ton/core';
+import { Op, Errors } from './JettonConstants';
 
 export type JettonMinterContent = {
     type:0|1,
     uri:string
 };
-export type JettonMinterConfig = {admin: Address; content: Cell; wallet_code: Cell};
+export type JettonMinterConfig = {admin: Address,  wallet_code: Cell};
 
 export function jettonMinterConfigToCell(config: JettonMinterConfig): Cell {
-    return beginCell()
-                      .storeCoins(0)
-                      .storeAddress(config.admin)
-                      .storeRef(config.content)
-                      .storeRef(config.wallet_code)
-           .endCell();
+    return  beginCell()
+                .storeCoins(0)
+                .storeAddress(config.admin)
+                .storeAddress(null) // Transfer admin address
+                .storeRef(config.wallet_code)
+            .endCell();
 }
 
 export function jettonContentToCell(content:JettonMinterContent) {
