@@ -1,5 +1,5 @@
 
-import { Address, toNano, fromNano } from "ton";
+import { Address, toNano, fromNano } from "@ton/core";
 
 export const randomAddress = (wc: number = 0) => {
     const buf = Buffer.alloc(32);
