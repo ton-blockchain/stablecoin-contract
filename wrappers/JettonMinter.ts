@@ -44,17 +44,34 @@ export class JettonMinter implements Contract {
         });
     }
 
-    static mintMessage(to: Address, jetton_amount: bigint, forward_ton_amount: bigint, total_ton_amount: bigint,) {
-        return beginCell().storeUint(0x1674b0a0, 32).storeUint(0, 64) // op, queryId
-                          .storeAddress(to).storeCoins(jetton_amount)
-                          .storeCoins(forward_ton_amount).storeCoins(total_ton_amount)
+    static mintMessage(to: Address, jetton_amount: bigint, from?: Address | null, response?: Address | null, customPayload?: Cell | null, forward_ton_amount: bigint = 0n, total_ton_amount: bigint = 0n) {
+		const mintMsg = beginCell().storeUint(Op.internal_transfer, 32)
+                                   .storeUint(0, 64)
+                                   .storeCoins(jetton_amount)
+                                   .storeAddress(from)
+                                   .storeAddress(response)
+                                   .storeCoins(forward_ton_amount)
+                                   .storeMaybeRef(customPayload)
+                        .endCell();
+        return beginCell().storeUint(Op.mint, 32).storeUint(0, 64) // op, queryId
+                          .storeAddress(to)
+                          .storeCoins(total_ton_amount)
+                          .storeRef(mintMsg)
                .endCell();
     }
-    async sendMint(provider: ContractProvider, via: Sender, to: Address, jetton_amount: bigint, forward_ton_amount: bigint, total_ton_amount: bigint,) {
+
+    async sendMint(provider: ContractProvider,
+				   via: Sender,
+				   to: Address,
+				   jetton_amount:bigint,
+				   from?: Address | null,
+				   response_addr?: Address | null,
+				   customPayload?: Cell | null,
+				   forward_ton_amount: bigint = toNano('0.05'), total_ton_amount: bigint = toNano('0.1')) {
         await provider.internal(via, {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: JettonMinter.mintMessage(to, jetton_amount, forward_ton_amount, total_ton_amount,),
-            value: total_ton_amount + toNano("0.1"),
+            body: JettonMinter.mintMessage(to, jetton_amount, from, response_addr, customPayload, forward_ton_amount, total_ton_amount),
+            value: total_ton_amount,
         });
     }
 
