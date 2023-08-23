@@ -5,6 +5,7 @@ import { JettonMinter } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { randomAddress, getRandomTon } from './utils';
+import { Op, Errors } from '../wrappers/JettonConstants';
 
 /*
    These tests check compliance with the TEP-74 and TEP-89,
