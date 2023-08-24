@@ -92,7 +92,7 @@ export class JettonMinter implements Contract {
     }
 
     static changeAdminMessage(newOwner: Address) {
-        return beginCell().storeUint(0x4840664f, 32).storeUint(0, 64) // op, queryId
+        return beginCell().storeUint(Op.change_admin, 32).storeUint(0, 64) // op, queryId
                           .storeAddress(newOwner)
                .endCell();
     }
@@ -103,6 +103,18 @@ export class JettonMinter implements Contract {
             body: JettonMinter.changeAdminMessage(newOwner),
             value: toNano("0.1"),
         });
+    }
+
+    static claimAdminMessage(query_id: bigint = 0n) {
+        return beginCell().storeUint(Op.claim_admin, 32).storeUint(query_id, 64).endCell();
+    }
+
+    async sendClaimAdmin(provider: ContractProvider, via: Sender, query_id:bigint = 0n) {
+        await provider.internal(via, {
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: JettonMinter.claimAdminMessage(query_id),
+            value: toNano('0.1')
+        })
     }
     static changeContentMessage(content: Cell) {
         return beginCell().storeUint(0x5773d1f5, 32).storeUint(0, 64) // op, queryId
