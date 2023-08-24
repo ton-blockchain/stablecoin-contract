@@ -45,6 +45,14 @@ export class JettonWallet implements Contract {
         let res = await provider.get('get_wallet_data', []);
         return res.stack.readBigNumber();
     }
+    async getWalletStatus(provider: ContractProvider) {
+        let state = await provider.getState();
+        if (state.state.type !== 'active') {
+            return 0;
+        }
+        let res = await provider.get('get_status', []);
+        return res.stack.readNumber();
+    }
     static transferMessage(jetton_amount: bigint, to: Address,
                            responseAddress:Address | null,
                            customPayload: Cell | null,
