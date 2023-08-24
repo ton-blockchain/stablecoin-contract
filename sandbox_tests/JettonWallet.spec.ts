@@ -368,6 +368,12 @@ describe('JettonWallet', () => {
             aborted: true,
             exitCode: Errors.not_enough_gas, //error::not_enough_tons
         });
+        // Make sure value bounced
+        expect(sendResult.transactions).toHaveTransaction({
+            from: deployerJettonWallet.address,
+            on: deployer.address,
+            inMessageBounced: true,
+            success: true
         });
 
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance);
