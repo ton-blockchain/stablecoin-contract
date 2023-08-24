@@ -1,10 +1,10 @@
-import { Blockchain, SandboxContract, TreasuryContract, Verbosity, internal } from '@ton/sandbox';
-import { Cell, toNano, beginCell, Address, SendMode } from '@ton/core';
+import { Blockchain, SandboxContract, TreasuryContract, internal } from '@ton/sandbox';
+import { Cell, toNano, beginCell, Address } from '@ton/core';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { JettonMinter } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
-import { randomAddress, getRandomTon } from './utils';
+import { randomAddress, getRandomTon, differentAddress } from './utils';
 import { Op, Errors } from '../wrappers/JettonConstants';
 
 /*
@@ -18,7 +18,9 @@ import { Op, Errors } from '../wrappers/JettonConstants';
 */
 
 //jetton params
-let fwd_fee = 1804014n, gas_consumption = 14000000n, min_tons_for_storage = 10000000n;
+
+let fwd_fee = 1804014n, gas_consumption = 10000000n, min_tons_for_storage = 10000000n;
+//let fwd_fee = 1804014n, gas_consumption = 14000000n, min_tons_for_storage = 10000000n;
 
 describe('JettonWallet', () => {
     let jwallet_code = new Cell();
@@ -38,7 +40,7 @@ describe('JettonWallet', () => {
         notDeployer    = await blockchain.treasury('notDeployer');
         defaultContent = beginCell().endCell();
         jettonMinter   = blockchain.openContract(
-                   await JettonMinter.createFromConfig(
+                   JettonMinter.createFromConfig(
                      {
                        admin: deployer.address,
                        wallet_code: jwallet_code,
@@ -91,7 +93,7 @@ describe('JettonWallet', () => {
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance + additionalJettonBalance);
         expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply + additionalJettonBalance);
         initialTotalSupply += additionalJettonBalance;
-        // can mint from other address
+        // can mint to other address
         let otherJettonBalance = toNano('3.12');
         await jettonMinter.sendMint(deployer.getSender(), notDeployer.address, otherJettonBalance, null, null, null, toNano('0.05'), toNano('1'));
         const notDeployerJettonWallet = await userWallet(notDeployer.address);
