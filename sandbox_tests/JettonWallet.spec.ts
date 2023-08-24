@@ -783,6 +783,137 @@ describe('JettonWallet', () => {
         });
     });
 
+    it('admin should be able to lock arbitrary jetton wallet', async () => {
+        const deployerJettonWallet = await userWallet(deployer.address);
+        const notDeployerJettonWallet = await userWallet(notDeployer.address);
+        const msgValue = getRandomTon(1, 2);
+        const statusBefore = await notDeployerJettonWallet.getWalletStatus();
+
+        expect(statusBefore).toEqual(0);
+
+        let res = await jettonMinter.sendLockWallet(deployer.getSender(), deployer.address, true, msgValue);
+        expect(res.transactions).toHaveTransaction({
+            on: jettonMinter.address,
+            from: deployer.address,
+            success: true
+        });
+        expect(res.transactions).toHaveTransaction({
+            on: deployerJettonWallet.address,
+            from: jettonMinter.address,
+            op: Op.set_status,
+            value: msgValue,
+            success: true
+        });
+
+        expect(await deployerJettonWallet.getWalletStatus()).toEqual(1);
+    });
+    it('not admin should not be able to lock or unlock wallet', async() => {
+        const deployerJettonWallet = await userWallet(deployer.address);
+        const notDeployerJettonWallet = await userWallet(notDeployer.address);
+        const msgValue = getRandomTon(1, 2);
+        // Can't lock
+        let res = await jettonMinter.sendLockWallet(notDeployer.getSender(), notDeployer.address, true, msgValue);
+
+        expect(res.transactions).toHaveTransaction({
+            on: jettonMinter.address,
+            from: notDeployer.address,
+            success: false,
+            exitCode: Errors.not_owner,
+            aborted: true
+        });
+        expect(res.transactions).not.toHaveTransaction({
+            on: notDeployerJettonWallet.address
+        });
+
+        // Can't unlock
+        res = await jettonMinter.sendLockWallet(notDeployer.getSender(), deployer.address, false, msgValue);
+        expect(res.transactions).toHaveTransaction({
+            on: jettonMinter.address,
+            from: notDeployer.address,
+            success: false,
+            exitCode: Errors.not_owner,
+            aborted: true
+        });
+        expect(res.transactions).not.toHaveTransaction({
+            on: deployerJettonWallet.address
+        });
+    });
+    it('locked wallet should not be able to send tokens', async () => {
+        const deployerJettonWallet = await userWallet(deployer.address);
+        const statusBefore = await deployerJettonWallet.getWalletStatus();
+        // Expect locked
+        expect(statusBefore).toEqual(1);
+
+        const balanceBefore = await deployerJettonWallet.getJettonBalance();
+        const res = await deployerJettonWallet.sendTransfer(deployer.getSender(),
+                                                            toNano('1'), // value
+                                                            1n, // jetton_amount
+                                                            notDeployer.address, // to
+                                                            deployer.address, // response_address
+                                                            null, // custom payload
+                                                            0n, // forward_ton_amount
+                                                            null);
+        expect(res.transactions).toHaveTransaction({
+            on: deployerJettonWallet.address,
+            from: deployer.address,
+            op: Op.transfer,
+            success: false,
+            aborted: true,
+            exitCode: Errors.contract_locked
+        });
+        expect(res.transactions).not.toHaveTransaction({
+            from: deployerJettonWallet.address,
+            op: Op.transfer_notification
+        });
+        expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore)
+    });
+    it('locked wallet should not be able to burn tokens', async () => {
+        const deployerJettonWallet = await userWallet(deployer.address);
+        const statusBefore = await deployerJettonWallet.getWalletStatus();
+        // Expect locked
+        expect(statusBefore).toEqual(1);
+
+        const balanceBefore = await deployerJettonWallet.getJettonBalance();
+
+        const res = await deployerJettonWallet.sendBurn(deployer.getSender(), toNano('1'), 1n, deployer.address, null);
+
+        expect(res.transactions).toHaveTransaction({
+            on: deployerJettonWallet.address,
+            from: deployer.address,
+            op: Op.burn,
+            success: false,
+            aborted: true,
+            exitCode: Errors.contract_locked
+        });
+        expect(res.transactions).not.toHaveTransaction({
+            from: deployerJettonWallet.address,
+            op: Op.burn_notification
+        });
+
+        expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore)
+    });
+    it('admin should be able to unlock locked wallet', async () => {
+        const deployerJettonWallet = await userWallet(deployer.address);
+        const msgValue = getRandomTon(1, 2);
+        const statusBefore = await deployerJettonWallet.getWalletStatus();
+
+        // Expect locked
+        expect(statusBefore).toEqual(1);
+
+        const res = await jettonMinter.sendLockWallet(deployer.getSender(), deployer.address, false, msgValue);
+
+        expect(res.transactions).toHaveTransaction({
+            on: deployerJettonWallet.address,
+            from: jettonMinter.address,
+            op: Op.set_status,
+            value: msgValue,
+            success: true
+        });
+
+        // Expect unlock
+        expect(await deployerJettonWallet.getWalletStatus()).toEqual(0);
+    });
+
     // Current wallet version doesn't support those operations
     // implementation detail
     it.skip('owner can withdraw excesses', async () => {
