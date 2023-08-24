@@ -119,20 +119,59 @@ describe('JettonWallet', () => {
     });
 
     it('minter admin can change admin', async () => {
-        expect((await jettonMinter.getAdminAddress()).equals(deployer.address)).toBe(true);
-        let changeAdmin = await jettonMinter.sendChangeAdmin(deployer.getSender(), notDeployer.address);
-        expect((await jettonMinter.getAdminAddress()).equals(notDeployer.address)).toBe(true);
-        changeAdmin = await jettonMinter.sendChangeAdmin(notDeployer.getSender(), deployer.address);
+        const adminBefore = await jettonMinter.getAdminAddress();
+        expect(adminBefore).toEqualAddress(deployer.address);
+        let res = await jettonMinter.sendChangeAdmin(deployer.getSender(), notDeployer.address);
+        expect(res.transactions).toHaveTransaction({
+            from: deployer.address,
+            on: jettonMinter.address,
+            success: true
+        });
+
+        res = await jettonMinter.sendClaimAdmin(notDeployer.getSender());
+
+        expect(res.transactions).toHaveTransaction({
+            from: notDeployer.address,
+            on: jettonMinter.address,
+            success: true
+        });
+
+	const adminAfter = await jettonMinter.getAdminAddress();
+        expect(adminAfter).toEqualAddress(notDeployer.address);
+        await jettonMinter.sendChangeAdmin(notDeployer.getSender(), deployer.address);
+        await jettonMinter.sendClaimAdmin(deployer.getSender());
         expect((await jettonMinter.getAdminAddress()).equals(deployer.address)).toBe(true);
     });
     it('not a minter admin can not change admin', async () => {
+        const adminBefore = await jettonMinter.getAdminAddress();
+        expect(adminBefore).toEqualAddress(deployer.address);
         let changeAdmin = await jettonMinter.sendChangeAdmin(notDeployer.getSender(), notDeployer.address);
         expect((await jettonMinter.getAdminAddress()).equals(deployer.address)).toBe(true);
         expect(changeAdmin.transactions).toHaveTransaction({
             from: notDeployer.address,
-            to: jettonMinter.address,
+            on: jettonMinter.address,
             aborted: true,
-            exitCode: 76, // error::unauthorized_change_admin_request
+            exitCode: Errors.not_owner, // error::unauthorized_change_admin_request
+        });
+    });
+    it('only address specified in change admin action should be able to claim admin', async () => {
+        const adminBefore = await jettonMinter.getAdminAddress();
+        expect(adminBefore).toEqualAddress(deployer.address);
+        let changeAdmin = await jettonMinter.sendChangeAdmin(deployer.getSender(), notDeployer.address);
+        expect(changeAdmin.transactions).toHaveTransaction({
+            from: deployer.address,
+            on: jettonMinter.address,
+            success: true
+        });
+
+        // At this point transfer_admin is set to notDeployer.address
+        const sneaky = differentAddress(notDeployer.address);
+        changeAdmin = await jettonMinter.sendClaimAdmin(blockchain.sender(sneaky));
+        expect(changeAdmin.transactions).toHaveTransaction({
+            from: sneaky,
+            on: jettonMinter.address,
+            success: false,
+            aborted: true
         });
     });
 
