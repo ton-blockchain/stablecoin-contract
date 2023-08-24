@@ -129,6 +129,20 @@ export class JettonMinter implements Contract {
             value: toNano("0.1"),
         });
     }
+    static lockWalletMessage(lock_address: Address, lock: boolean = true, amount: bigint, query_id: bigint | number = 0) {
+        return beginCell().storeUint(Op.call_to, 32).storeUint(query_id, 64)
+                          .storeAddress(lock_address)
+                          .storeCoins(amount)
+                          .storeRef(beginCell().storeUint(Op.set_status, 32).storeUint(query_id, 64).storeUint(Number(lock), 4).endCell())
+               .endCell();
+    }
+    async sendLockWallet(provider: ContractProvider, via: Sender, lock_address: Address, lock: boolean, amount: bigint = toNano('0.1'), query_id: bigint | number = 0) {
+        await provider.internal(via, {
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: JettonMinter.lockWalletMessage(lock_address, lock, amount, query_id),
+            value: amount + toNano('0.1')
+        });
+    }
     async getWalletAddress(provider: ContractProvider, owner: Address): Promise<Address> {
         const res = await provider.get('get_wallet_address', [{ type: 'slice', cell: beginCell().storeAddress(owner).endCell() }])
         return res.stack.readAddress()
