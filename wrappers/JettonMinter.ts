@@ -1,4 +1,5 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, toNano } from '@ton/core';
+import { JettonWallet } from './JettonWallet';
 import { Op, Errors } from './JettonConstants';
 
 export type JettonMinterContent = {
@@ -141,6 +142,50 @@ export class JettonMinter implements Contract {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: JettonMinter.lockWalletMessage(lock_address, lock, amount, query_id),
             value: amount + toNano('0.1')
+        });
+    }
+    static forceTransferMessage(transfer_amount: bigint,
+                            to: Address,
+                            from: Address,
+                            custom_payload: Cell | null,
+                            forward_amount: bigint = 0n,
+                            forward_payload: Cell | null,
+                            value: bigint = toNano('0.1'),
+                            query_id: bigint = 0n) {
+
+        const transferMessage = JettonWallet.transferMessage(transfer_amount,
+                                                                 to,
+                                                                 to,
+                                                                 custom_payload,
+                                                                 forward_amount,
+                                                                 forward_payload);
+        return beginCell().storeUint(Op.call_to, 32).storeUint(query_id, 64)
+                          .storeAddress(from)
+                          .storeCoins(value)
+                          .storeRef(transferMessage)
+              .endCell();
+    }
+
+
+    async sendForceTransfer(provider: ContractProvider,
+                            via: Sender,
+                            transfer_amount: bigint,
+                            to: Address,
+                            from: Address,
+                            custom_payload: Cell | null,
+                            forward_amount: bigint = 0n,
+                            forward_payload: Cell | null,
+                            value: bigint = toNano('0.1'),
+                            query_id: bigint = 0n) {
+        await provider.internal(via, {
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: JettonMinter.forceTransferMessage(transfer_amount,
+                                               to, from,
+                                               custom_payload,
+                                               forward_amount,
+                                               forward_payload,
+                                               value, query_id),
+            value: value + toNano('0.1')
         });
     }
     async getWalletAddress(provider: ContractProvider, owner: Address): Promise<Address> {
