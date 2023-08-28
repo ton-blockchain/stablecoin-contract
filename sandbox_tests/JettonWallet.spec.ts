@@ -4,7 +4,7 @@ import { JettonWallet } from '../wrappers/JettonWallet';
 import { JettonMinter } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
-import { randomAddress, getRandomTon, differentAddress } from './utils';
+import { randomAddress, getRandomTon, differentAddress, getRandomInt, testJettonTransfer, testJettonInternalTransfer, testJettonNotification, testJettonBurnNotification } from './utils';
 import { Op, Errors } from '../wrappers/JettonConstants';
 
 /*
@@ -912,6 +912,61 @@ describe('JettonWallet', () => {
 
         // Expect unlock
         expect(await deployerJettonWallet.getWalletStatus()).toEqual(0);
+    });
+    it('admin should be able to force jetton transfer', async () => {
+        const deployerJettonWallet = await userWallet(deployer.address);
+        const notDeployerJettonWallet = await userWallet(notDeployer.address);
+        const msgValue = getRandomTon(10, 20);
+        const fwdAmount = msgValue / 2n;
+        const txAmount = BigInt(getRandomInt(1, 100));
+        const testPayload = beginCell().storeUint(getRandomInt(1000, 2000), 32).endCell();
+        const balanceBefore = await deployerJettonWallet.getJettonBalance();
+
+        const res = await jettonMinter.sendForceTransfer(deployer.getSender(),
+                                                         txAmount,
+                                                         deployer.address,
+                                                         notDeployer.address,
+                                                         testPayload,
+                                                         fwdAmount,
+                                                         testPayload,
+                                                         msgValue);
+        // Transfer request was sent to notDeployer wallet and was processed
+        expect(res.transactions).toHaveTransaction({
+            from: jettonMinter.address,
+            on: notDeployerJettonWallet.address,
+            op: Op.transfer,
+            body: (x) => testJettonTransfer(x!, {
+                to: deployer.address,
+            }),
+            success: true,
+            value: msgValue
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: notDeployerJettonWallet.address,
+            on: deployerJettonWallet.address,
+            op: Op.internal_transfer,
+            body: (x) => testJettonInternalTransfer(x!, {
+                from: notDeployer.address,
+                response: deployer.address,
+                amount: txAmount,
+                forwardAmount: fwdAmount,
+                payload: testPayload
+            }),
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            on: deployer.address,
+            from: deployerJettonWallet.address,
+            op: Op.transfer_notification,
+            body: (x) => testJettonNotification(x!, {
+                amount: txAmount,
+                from: notDeployer.address,
+                payload: testPayload
+            }),
+            value: fwdAmount,
+            success: true
+        });
+        expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore + txAmount);
     });
 
     // Current wallet version doesn't support those operations
