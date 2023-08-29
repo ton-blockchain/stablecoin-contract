@@ -1140,6 +1140,109 @@ describe('JettonWallet', () => {
 
     });
     });
+    describe('Bounces', () => {
+        it('minter should restore supply on internal_transfer bounce', async () => {
+            const deployerJettonWallet    = await userWallet(deployer.address);
+            const mintAmount = BigInt(getRandomInt(1000, 2000));
+            const mintMsg    = JettonMinter.mintMessage(deployer.address, mintAmount, null, null, null, toNano('0.1'), toNano('0.1'));
+
+            const supplyBefore = await jettonMinter.getTotalSupply();
+            const minterSmc = await blockchain.getContract(jettonMinter.address);
+
+            // Sending message but only processing first step of tx chain
+            let res = minterSmc.receiveMessage(internal({
+                from: deployer.address,
+                to: jettonMinter.address,
+                body: mintMsg,
+                value: toNano('1')
+            }));
+
+            expect(res.outMessagesCount).toEqual(1);
+            const outMsgSc = res.outMessages.get(0)!.body.beginParse();
+            expect(outMsgSc.preloadUint(32)).toEqual(Op.internal_transfer);
+
+            expect(await jettonMinter.getTotalSupply()).toEqual(supplyBefore + mintAmount);
+
+            minterSmc.receiveMessage(internal({
+                from: deployerJettonWallet.address,
+                to: jettonMinter.address,
+                bounced: true,
+                body: beginCell().storeUint(0xFFFFFFFF, 32).storeSlice(outMsgSc).endCell(),
+                value: toNano('0.95')
+            }));
+
+            // Supply should change back
+            expect(await jettonMinter.getTotalSupply()).toEqual(supplyBefore);
+        });
+        it('wallet should restore balance on internal_transfer bounce', async () => {
+            const deployerJettonWallet    = await userWallet(deployer.address);
+            const notDeployerJettonWallet = await userWallet(notDeployer.address);
+            const balanceBefore           = await deployerJettonWallet.getJettonBalance();
+            const txAmount = BigInt(getRandomInt(100, 200));
+            const transferMsg = JettonWallet.transferMessage(txAmount, notDeployer.address, deployer.address, null, 0n, null);
+
+            const walletSmc = await blockchain.getContract(deployerJettonWallet.address);
+
+            const res = walletSmc.receiveMessage(internal({
+                from: deployer.address,
+                to: deployerJettonWallet.address,
+                body: transferMsg,
+                value: toNano('1')
+            }));
+
+            expect(res.outMessagesCount).toEqual(1);
+
+            const outMsgSc = res.outMessages.get(0)!.body.beginParse();
+            expect(outMsgSc.preloadUint(32)).toEqual(Op.internal_transfer);
+
+            expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore - txAmount);
+
+            walletSmc.receiveMessage(internal({
+                from: notDeployerJettonWallet.address,
+                to: walletSmc.address,
+                bounced: true,
+                body: beginCell().storeUint(0xFFFFFFFF, 32).storeSlice(outMsgSc).endCell(),
+                value: toNano('0.95')
+            }));
+
+            // Balance should roll back
+            expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore);
+        });
+        it('wallet should restore balance on burn_notification bounce', async () => {
+            const deployerJettonWallet = await userWallet(deployer.address);
+            const balanceBefore        = await deployerJettonWallet.getJettonBalance();
+            const burnAmount = BigInt(getRandomInt(100, 200));
+
+            const burnMsg = JettonWallet.burnMessage(burnAmount, deployer.address, null);
+
+            const walletSmc = await blockchain.getContract(deployerJettonWallet.address);
+
+            const res = walletSmc.receiveMessage(internal({
+                from: deployer.address,
+                to: deployerJettonWallet.address,
+                body: burnMsg,
+                value: toNano('1')
+            }));
+
+            expect(res.outMessagesCount).toEqual(1);
+
+            const outMsgSc = res.outMessages.get(0)!.body.beginParse();
+            expect(outMsgSc.preloadUint(32)).toEqual(Op.burn_notification);
+
+            expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore - burnAmount);
+
+            walletSmc.receiveMessage(internal({
+                from: jettonMinter.address,
+                to: walletSmc.address,
+                bounced: true,
+                body: beginCell().storeUint(0xFFFFFFFF, 32).storeSlice(outMsgSc).endCell(),
+                value: toNano('0.95')
+            }));
+
+            // Balance should roll back
+            expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore);
+        });
+    });
 
     // Current wallet version doesn't support those operations
     // implementation detail
