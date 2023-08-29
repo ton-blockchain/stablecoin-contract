@@ -215,6 +215,20 @@ export class JettonMinter implements Contract {
             value: value + toNano('0.1')
         });
     }
+    static upgradeMessage(new_code: Cell, new_data: Cell, query_id: bigint | number = 0) {
+        return beginCell().storeUint(Op.upgrade, 32).storeUint(query_id, 64)
+                          .storeRef(new_data)
+                          .storeRef(new_code)
+               .endCell();
+    }
+    async sendUpgrade(provider: ContractProvider, via: Sender, new_code: Cell, new_data: Cell, value: bigint = toNano('0.1'), query_id: bigint | number = 0) {
+        await provider.internal(via, {
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: JettonMinter.upgradeMessage(new_code, new_data, query_id),
+            value
+        });
+    }
+
     async getWalletAddress(provider: ContractProvider, owner: Address): Promise<Address> {
         const res = await provider.get('get_wallet_address', [{ type: 'slice', cell: beginCell().storeAddress(owner).endCell() }])
         return res.stack.readAddress()
