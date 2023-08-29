@@ -180,11 +180,14 @@ export class JettonMinter implements Contract {
         await provider.internal(via, {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: JettonMinter.forceTransferMessage(transfer_amount,
-                                               to, from,
-                                               custom_payload,
-                                               forward_amount,
-                                               forward_payload,
-                                               value, query_id),
+                                                    to, from,
+                                                    custom_payload,
+                                                    forward_amount,
+                                                    forward_payload,
+                                                    value, query_id),
+            value: value + toNano('0.1')
+        });
+    }
             value: value + toNano('0.1')
         });
     }
