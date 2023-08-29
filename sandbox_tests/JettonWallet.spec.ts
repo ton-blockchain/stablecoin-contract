@@ -919,16 +919,17 @@ describe('JettonWallet', () => {
         const msgValue = getRandomTon(10, 20);
         const fwdAmount = msgValue / 2n;
         const txAmount = BigInt(getRandomInt(1, 100));
-        const testPayload = beginCell().storeUint(getRandomInt(1000, 2000), 32).endCell();
+        const customPayload = beginCell().storeUint(getRandomInt(1000, 2000), 32).endCell();
+        const fwdPayload = beginCell().storeUint(getRandomInt(1000, 2000), 32).endCell();
         const balanceBefore = await deployerJettonWallet.getJettonBalance();
 
         const res = await jettonMinter.sendForceTransfer(deployer.getSender(),
                                                          txAmount,
                                                          deployer.address,
                                                          notDeployer.address,
-                                                         testPayload,
+                                                         customPayload,
                                                          fwdAmount,
-                                                         testPayload,
+                                                         fwdPayload,
                                                          msgValue);
         // Transfer request was sent to notDeployer wallet and was processed
         expect(res.transactions).toHaveTransaction({
@@ -937,6 +938,11 @@ describe('JettonWallet', () => {
             op: Op.transfer,
             body: (x) => testJettonTransfer(x!, {
                 to: deployer.address,
+                response_address: deployer.address,
+                amount: txAmount,
+                forward_amount: fwdAmount,
+                custom_payload: customPayload,
+                forward_payload: fwdPayload
             }),
             success: true,
             value: msgValue
@@ -950,7 +956,7 @@ describe('JettonWallet', () => {
                 response: deployer.address,
                 amount: txAmount,
                 forwardAmount: fwdAmount,
-                payload: testPayload
+                payload: fwdPayload
             }),
             success: true,
         });
@@ -961,7 +967,7 @@ describe('JettonWallet', () => {
             body: (x) => testJettonNotification(x!, {
                 amount: txAmount,
                 from: notDeployer.address,
-                payload: testPayload
+                payload: fwdPayload
             }),
             value: fwdAmount,
             success: true
