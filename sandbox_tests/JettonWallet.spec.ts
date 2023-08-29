@@ -1,4 +1,4 @@
-import { Blockchain, SandboxContract, TreasuryContract, internal } from '@ton/sandbox';
+import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot } from '@ton/sandbox';
 import { Cell, toNano, beginCell, Address } from '@ton/core';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { JettonMinter } from '../wrappers/JettonMinter';
@@ -783,6 +783,10 @@ describe('JettonWallet', () => {
         });
     });
 
+    describe('Locking', () => {
+    let prevState : BlockchainSnapshot;
+    beforeAll( () => prevState = blockchain.snapshot());
+    afterAll( async () => await blockchain.loadFrom(prevState));
     it('admin should be able to lock arbitrary jetton wallet', async () => {
         const deployerJettonWallet = await userWallet(deployer.address);
         const notDeployerJettonWallet = await userWallet(notDeployer.address);
@@ -913,6 +917,13 @@ describe('JettonWallet', () => {
         // Expect unlock
         expect(await deployerJettonWallet.getWalletStatus()).toEqual(0);
     });
+    });
+    describe('Force transfer', () => {
+
+    let prevState : BlockchainSnapshot;
+    beforeAll( () => prevState = blockchain.snapshot());
+    afterAll( async () => await blockchain.loadFrom(prevState));
+
     it('admin should be able to force jetton transfer', async () => {
         const deployerJettonWallet = await userWallet(deployer.address);
         const notDeployerJettonWallet = await userWallet(notDeployer.address);
