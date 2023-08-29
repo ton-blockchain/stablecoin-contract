@@ -1116,7 +1116,6 @@ describe('JettonWallet', () => {
     });
 
     it('admin should be able to force burn even on locked wallet', async () => {
-        const deployerJettonWallet    = await userWallet(deployer.address);
         const notDeployerJettonWallet = await userWallet(notDeployer.address);
         const burnAmount = BigInt(getRandomInt(1, 100));
         const balanceBefore = await notDeployerJettonWallet.getJettonBalance();
