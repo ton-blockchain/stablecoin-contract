@@ -1046,6 +1046,101 @@ describe('JettonWallet', () => {
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore + txAmount);
     });
     });
+    describe('Force burn', () => {
+    let prevState : BlockchainSnapshot;
+    beforeAll( () => prevState = blockchain.snapshot());
+    afterAll( async () => await blockchain.loadFrom(prevState));
+
+    it('admin should be able to force burn jettons in arbitrary wallet', async () => {
+        const notDeployerJettonWallet = await userWallet(notDeployer.address);
+        const msgValue   = getRandomTon(10, 20);
+        const burnAmount = BigInt(getRandomInt(1, 100));
+
+        const balanceBefore = await notDeployerJettonWallet.getJettonBalance();
+        const supplyBefore  = await jettonMinter.getTotalSupply();
+
+        const res = await jettonMinter.sendForceBurn(deployer.getSender(), burnAmount, notDeployer.address, deployer.address, msgValue);
+        expect(res.transactions).toHaveTransaction({
+            on: notDeployerJettonWallet.address,
+            from: jettonMinter.address,
+            op: Op.burn,
+            value: msgValue,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            on: jettonMinter.address,
+            from: notDeployerJettonWallet.address,
+            op: Op.burn_notification,
+            body: (x) => testJettonBurnNotification(x!, {
+                amount: burnAmount,
+                response_address: deployer.address
+            })
+        });
+        expect(res.transactions).toHaveTransaction({
+            on: deployer.address,
+            from: jettonMinter.address,
+            op: Op.excesses,
+            success: true
+        });
+
+        expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(balanceBefore - burnAmount);
+        expect(await jettonMinter.getTotalSupply()).toEqual(supplyBefore - burnAmount);
+    });
+    it('not admin should not be able to force burn', async () => {
+        const deployerJettonWallet    = await userWallet(deployer.address);
+        const notDeployerJettonWallet = await userWallet(notDeployer.address);
+
+
+        const msgValue   = getRandomTon(10, 20);
+        const burnAmount = BigInt(getRandomInt(1, 100));
+
+        const balanceBefore = await notDeployerJettonWallet.getJettonBalance();
+        const supplyBefore  = await jettonMinter.getTotalSupply();
+
+        const res = await jettonMinter.sendForceBurn(notDeployer.getSender(), burnAmount, notDeployer.address, deployer.address, msgValue);
+
+        expect(res.transactions).toHaveTransaction({
+            on: jettonMinter.address,
+            from: notDeployer.address,
+            op: Op.call_to,
+            success: false,
+            aborted: true
+        });
+        expect(res.transactions).not.toHaveTransaction({
+            from: jettonMinter.address,
+            op: Op.burn
+        });
+
+        expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(balanceBefore);
+        expect(await jettonMinter.getTotalSupply()).toEqual(supplyBefore);
+    });
+
+    it('admin should be able to force burn even on locked wallet', async () => {
+        const deployerJettonWallet    = await userWallet(deployer.address);
+        const notDeployerJettonWallet = await userWallet(notDeployer.address);
+        const burnAmount = BigInt(getRandomInt(1, 100));
+        const balanceBefore = await notDeployerJettonWallet.getJettonBalance();
+        const supplyBefore  = await jettonMinter.getTotalSupply();
+        const msgValue   = getRandomTon(10, 20);
+
+        expect(await notDeployerJettonWallet.getWalletStatus()).toEqual(0);
+        await jettonMinter.sendLockWallet(deployer.getSender(), notDeployer.address, true);
+        expect(await notDeployerJettonWallet.getWalletStatus()).toEqual(1);
+
+        const res = await jettonMinter.sendForceBurn(deployer.getSender(), burnAmount, notDeployer.address, deployer.address, msgValue);
+
+        expect(res.transactions).toHaveTransaction({
+            on: notDeployerJettonWallet.address,
+            from: jettonMinter.address,
+            op: Op.burn,
+            success: true
+        });
+
+        expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(balanceBefore - burnAmount);
+        expect(await jettonMinter.getTotalSupply()).toEqual(supplyBefore - burnAmount);
+
+    });
+    });
 
     // Current wallet version doesn't support those operations
     // implementation detail
