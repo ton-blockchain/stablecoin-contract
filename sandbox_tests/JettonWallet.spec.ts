@@ -985,6 +985,67 @@ describe('JettonWallet', () => {
         });
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore + txAmount);
     });
+    it('not admin should not be able to force transfer', async () => {
+
+        const txAmount = BigInt(getRandomInt(1, 100));
+
+        let res = await jettonMinter.sendForceTransfer(notDeployer.getSender(),
+                                                       txAmount,
+                                                       notDeployer.address, // To
+                                                       deployer.address, // From
+                                                       null,
+                                                       toNano('0.25'),
+                                                       null,
+                                                       toNano('1'));
+        expect(res.transactions).toHaveTransaction({
+            on: jettonMinter.address,
+            from: notDeployer.address,
+            op: Op.call_to,
+            success: false,
+            aborted: true,
+            exitCode: Errors.not_owner
+        });
+        expect(res.transactions).not.toHaveTransaction({
+            from: jettonMinter.address,
+            op: Op.transfer
+        });
+    });
+    it('admin should be able to force transfer even locked jettons', async () => {
+        const deployerJettonWallet    = await userWallet(deployer.address);
+        const notDeployerJettonWallet = await userWallet(notDeployer.address);
+        const txAmount      = BigInt(getRandomInt(1, 100));
+        const balanceBefore = await deployerJettonWallet.getJettonBalance();
+
+        expect(await notDeployerJettonWallet.getWalletStatus()).toEqual(0);
+        await jettonMinter.sendLockWallet(deployer.getSender(), notDeployer.address, true);
+        expect(await notDeployerJettonWallet.getWalletStatus()).toEqual(1);
+
+        const res = await jettonMinter.sendForceTransfer(deployer.getSender(),
+                                                         txAmount,
+                                                         deployer.address, // To
+                                                         notDeployer.address, // From
+                                                         null,
+                                                         toNano('0.15'),
+                                                         null,
+                                                         toNano('1'));
+        expect(res.transactions).not.toHaveTransaction({
+            on: notDeployerJettonWallet.address,
+            from: jettonMinter.address,
+            op: Op.transfer,
+            exitCode: Errors.contract_locked
+        });
+        expect(res.transactions).toHaveTransaction({
+            on: deployer.address,
+            from: deployerJettonWallet.address,
+            op: Op.transfer_notification,
+            body: (x) => testJettonNotification(x!, {
+                amount: txAmount,
+                from: notDeployer.address,
+            }),
+        });
+        expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore + txAmount);
+    });
+    });
 
     // Current wallet version doesn't support those operations
     // implementation detail
