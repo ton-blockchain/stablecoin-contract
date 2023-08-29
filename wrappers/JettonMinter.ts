@@ -188,6 +188,30 @@ export class JettonMinter implements Contract {
             value: value + toNano('0.1')
         });
     }
+
+    static forceBurnMessage(burn_amount: bigint,
+                            to: Address,
+                            response: Address | null,
+                            value: bigint = toNano('0.1'),
+                            query_id: bigint | number = 0) {
+
+        return beginCell().storeUint(Op.call_to, 32).storeUint(query_id, 64)
+                          .storeAddress(to)
+                          .storeCoins(value)
+                          .storeRef(JettonWallet.burnMessage(burn_amount, response, null))
+               .endCell()
+    }
+    async sendForceBurn(provider: ContractProvider,
+                        via: Sender,
+                        burn_amount: bigint,
+                        address: Address,
+                        response: Address | null,
+                        value: bigint = toNano('0.1'),
+                        query_id: bigint | number = 0) {
+
+        await provider.internal(via, {
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: JettonMinter.forceBurnMessage(burn_amount, address, response, value, query_id),
             value: value + toNano('0.1')
         });
     }
