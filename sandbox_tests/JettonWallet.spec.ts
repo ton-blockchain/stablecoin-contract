@@ -1244,6 +1244,77 @@ describe('JettonWallet', () => {
         });
     });
 
+    describe('Upgrade', () => {
+        let prevState : BlockchainSnapshot;
+
+        let getContractData:(address: Address) => Promise<Cell>;
+        let getContractCode:(smc: Address)     => Promise<Cell>;
+        beforeAll(() => {
+            prevState = blockchain.snapshot();
+            getContractData = async (address: Address) => {
+              const smc = await blockchain.getContract(address);
+              if(!smc.account.account)
+                throw("Account not found")
+              if(smc.account.account.storage.state.type != "active" )
+                throw("Atempting to get data on inactive account");
+              if(!smc.account.account.storage.state.state.data)
+                throw("Data is not present");
+              return smc.account.account.storage.state.state.data
+            }
+            getContractCode = async (address: Address) => {
+              const smc = await blockchain.getContract(address);
+              if(!smc.account.account)
+                throw("Account not found")
+              if(smc.account.account.storage.state.type != "active" )
+                throw("Atempting to get code on inactive account");
+              if(!smc.account.account.storage.state.state.code)
+                throw("Code is not present");
+              return smc.account.account.storage.state.state.code;
+            }
+        });
+
+        afterAll(async () => await blockchain.loadFrom(prevState));
+
+
+        it('not admin should not be able to upgrade minter', async () => {
+            const codeCell = beginCell().storeUint(getRandomInt(1000, (1 << 32) - 1), 32).endCell();
+            const dataCell = beginCell().storeUint(getRandomInt(1000, (1 << 32) - 1), 32).endCell();
+
+            const codeBefore = await getContractCode(jettonMinter.address);
+            const dataBefore = await getContractData(jettonMinter.address);
+
+            const notAdmin = differentAddress(deployer.address);
+
+            const res = await jettonMinter.sendUpgrade(blockchain.sender(notAdmin), codeCell, dataCell);
+
+            expect(res.transactions).toHaveTransaction({
+                on: jettonMinter.address,
+                from: notAdmin,
+                success: false,
+                aborted: true
+            });
+
+            // Excessive due to transaction is aborted, but still
+            expect(await getContractCode(jettonMinter.address)).toEqualCell(codeBefore);
+            expect(await getContractData(jettonMinter.address)).toEqualCell(dataBefore);
+        });
+        it('admin should be able to upgrade minter code and data', async () => {
+            const codeCell = beginCell().storeUint(getRandomInt(1000, (1 << 32) - 1), 32).endCell();
+            const dataCell = beginCell().storeUint(getRandomInt(1000, (1 << 32) - 1), 32).endCell();
+
+            const res = await jettonMinter.sendUpgrade(deployer.getSender(), codeCell, dataCell);
+            expect(res.transactions).toHaveTransaction({
+                on: jettonMinter.address,
+                from: deployer.address,
+                op: Op.upgrade,
+                success: true
+            });
+
+            expect(await getContractCode(jettonMinter.address)).toEqualCell(codeCell);
+            expect(await getContractData(jettonMinter.address)).toEqualCell(dataCell);
+        });
+    });
+
     // Current wallet version doesn't support those operations
     // implementation detail
     it.skip('owner can withdraw excesses', async () => {
