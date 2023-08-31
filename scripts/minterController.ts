@@ -203,8 +203,10 @@ export async function run(provider: NetworkProvider) {
                 break;
             case 'Claim admin':
                 await claimAdminAction(provider, ui);
+                break;
             case 'Upgrade':
                 await upgradeAction(provider, ui);
+                break;
             case 'Info':
                 await infoAction(provider, ui);
                 break;
