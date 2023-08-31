@@ -1,5 +1,5 @@
-import { sleep, NetworkProvider, UIProvider} from '@ton-community/blueprint';
-import { Address, Cell } from "ton-core";
+import { sleep, NetworkProvider, UIProvider} from '@ton/blueprint';
+import { Address, beginCell, Builder, Cell, Dictionary, DictionaryValue, Slice } from "@ton/core";
 
 export const promptBool    = async (prompt:string, options:[string, string], ui:UIProvider) => {
     let yes  = false;

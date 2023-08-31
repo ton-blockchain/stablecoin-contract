@@ -1,7 +1,7 @@
 import { Address, toNano } from '@ton/core';
 import { JettonMinter } from '../wrappers/JettonMinter';
-import { compile, NetworkProvider, UIProvider} from '@ton-community/blueprint';
-import { promptAddress, promptBool, promptUrl } from '../wrappers/ui-utils';
+import { compile, NetworkProvider} from '@ton/blueprint';
+import { promptAddress, promptBool} from '../wrappers/ui-utils';
 
 
 export async function run(provider: NetworkProvider) {
