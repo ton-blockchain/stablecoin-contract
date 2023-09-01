@@ -126,9 +126,41 @@ const mintAction = async (provider:NetworkProvider, ui:UIProvider) => {
     }
 }
 
-const updateData = (oldData: Cell, ui: UIProvider) => {
-    // TODO
-    return oldData
+const updateData = async (oldData: Cell, ui: UIProvider) => {
+    const curConfig   = jettonMinterConfigCellToConfig(oldData);
+    let   newConfig: JettonMinterConfigFull;
+    let   retry: boolean;
+    do {
+        newConfig   = {...curConfig};
+        let   updateWallet = false;
+        const updateSupply = await promptBool(`Current supply:${fromNano(curConfig.supply)}\nWant to change?`, ['Yes', 'No'], ui, true);
+        if(updateSupply)
+            newConfig.supply   = toNano(await promptAmount('Enter new supply amount:', ui));
+        const updateAdmin  = await promptBool(`Current admin:${curConfig.admin}\nWant to change?`, ['Yes', 'No'], ui, true);
+        if(updateAdmin)
+            newConfig.admin = await promptAddress('Enter new admin address:', ui);
+        if(newConfig.transfer_admin !== null){
+            if(!(await promptBool(`Currently admin rights can be transfered to:${curConfig.transfer_admin}\nPreserve?`,['Yes', 'No'], ui))){
+                // Drop the transfer rights
+                newConfig.transfer_admin = null;
+            }
+        }
+        // If different from contract code
+        if(!curConfig.wallet_code.equals(walletCode)) {
+            // Demand written answer
+            updateWallet = await promptBool("Update wallet code from jetton-wallet.fc?\n(CAUTION:This will break compatability with deployed wallets)", ['Yes', 'No'], ui);
+            if(updateWallet) {
+                newConfig.wallet_code = walletCode;
+            }
+        }
+        retry = !(await promptBool(`New config:${JSON.stringify({
+            supply: newConfig.supply.toString(),
+            admin: newConfig.admin.toString(),
+            transfer_admin: newConfig.transfer_admin?.toString(),
+            wallet_code: updateWallet ? "updated" : "preserved"
+        }, null, 2)}\nIs it okay?`, ['Yes', 'No'], ui));
+    } while(retry);
+    return jettonMinterConfigFullToCell(newConfig);
 }
 const upgradeAction = async (provider: NetworkProvider, ui: UIProvider) => {
     const api = provider.api();
@@ -146,8 +178,19 @@ const upgradeAction = async (provider: NetworkProvider, ui: UIProvider) => {
     const dataBefore =  contractState.account.state.data ? Cell.fromBase64(contractState.account.state.data) : beginCell().endCell();
     if(upgradeCode || upgradeData) {
         const newCode = upgradeCode ? minterCode : Cell.fromBase64(contractState.account.state.code);
-        const newData = upgradeData ? updateData(dataBefore, ui) : dataBefore;
+        const newData = upgradeData ? await updateData(dataBefore, ui) : dataBefore;
         await minterContract.sendUpgrade(provider.sender(), newCode, newData, toNano('0.05'));
+        const gotTrans = await waitForTransaction(provider,
+                                                  minterContract.address,
+                                                  contractState.account.last!.lt,
+                                                  10);
+        if(gotTrans){
+            ui.write("Contract upgraded successfully!");
+        }
+        else {
+            failedTransMessage(ui);
+        }
+
     }
     else {
         ui.write('Nothing to do then!');
