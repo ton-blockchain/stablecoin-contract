@@ -5,13 +5,13 @@ import { sha256 } from 'ton-crypto';
 export const defaultJettonKeys = ["uri", "name", "description", "image", "image_data", "symbol", "decimals", "amount_style"];
 export const defaultNftKeys    = ["uri", "name", "description", "image", "image_data"];
 
-export const promptBool    = async (prompt:string, options:[string, string], ui:UIProvider) => {
+export const promptBool = async (prompt:string, options:[string, string], ui:UIProvider, choice: boolean = false) => {
     let yes  = false;
     let no   = false;
     let opts = options.map(o => o.toLowerCase());
 
     do {
-        let res = (await ui.input(prompt)).toLowerCase();
+        let res = (choice ? await ui.choose(prompt, options, (c: string) => c) : await ui.input(`${prompt}(${options[0]}/${options[1]})`)).toLowerCase();
         yes = res == opts[0]
         if(!yes)
             no  = res == opts[1];
