@@ -7,7 +7,31 @@ export type JettonMinterContent = {
     uri:string
 };
 export type JettonMinterConfig = {admin: Address,  wallet_code: Cell};
+export type JettonMinterConfigFull = {
+    supply: bigint,
+    admin: Address,
+    //Makes no sense to update transfer admin. ...Or is it?
+    transfer_admin: Address | null,
+    wallet_code: Cell
+}
 
+export function jettonMinterConfigCellToConfig(config: Cell) : JettonMinterConfigFull {
+    const sc = config.beginParse()
+    return {
+        supply: sc.loadCoins(),
+        admin: sc.loadAddress(),
+        transfer_admin: sc.loadMaybeAddress(),
+        wallet_code: sc.loadRef()
+    }
+}
+export function jettonMinterConfigFullToCell(config: JettonMinterConfigFull): Cell {
+    return beginCell()
+                .storeCoins(config.supply)
+                .storeAddress(config.admin)
+                .storeAddress(config.transfer_admin)
+                .storeRef(config.wallet_code)
+           .endCell()
+}
 export function jettonMinterConfigToCell(config: JettonMinterConfig): Cell {
     return  beginCell()
                 .storeCoins(0)
