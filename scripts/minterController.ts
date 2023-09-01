@@ -1,12 +1,14 @@
 import { Address, beginCell, Cell, fromNano, OpenedContract, toNano } from '@ton/core';
 import { compile, NetworkProvider, UIProvider} from '@ton/blueprint';
-import { JettonMinter } from '../wrappers/JettonMinter';
+import { JettonMinter, jettonMinterConfigCellToConfig, JettonMinterConfigFull, jettonMinterConfigFullToCell } from '../wrappers/JettonMinter';
 import { promptBool, promptAmount, promptAddress, displayContentCell, getLastBlock, waitForTransaction, getAccountLastTx } from '../wrappers/ui-utils';
+import { JettonWallet } from '../wrappers/JettonWallet';
 let minterContract:OpenedContract<JettonMinter>;
 
 const adminActions  = ['Mint', 'Change admin', 'Upgrade', 'Lock', 'Unlock', 'Force transfer', 'Force burn'];
 const userActions   = ['Info', 'Claim admin', 'Quit'];
 let minterCode: Cell;
+let walletCode: Cell;
 
 
 
@@ -158,6 +160,7 @@ export async function run(provider: NetworkProvider) {
     const hasSender = sender.address !== undefined;
     const api    = provider.api()
     minterCode = await compile('JettonMinter');
+    walletCode = await compile('JettonWallet');
     let   done   = false;
     let   retry:boolean;
     let   minterAddress:Address;
