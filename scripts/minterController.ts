@@ -197,6 +197,187 @@ const upgradeAction = async (provider: NetworkProvider, ui: UIProvider) => {
     }
 }
 
+type AccountStateLite = Awaited<ReturnType<ReturnType<NetworkProvider['api']>['getAccountLite']>>;
+type AccountStateFull = Awaited<ReturnType<ReturnType<NetworkProvider['api']>['getAccount']>>;
+
+const matchCodeLite = (contractState: AccountStateLite, code: Cell) => {
+    let equals = false;
+
+    if(contractState.account.state.type === 'active') {
+        const codeHash = code.hash()
+        equals = codeHash.equals(Buffer.from(contractState.account.state.codeHash, 'base64'));
+    }
+
+    return equals;
+}
+
+const matchCodeFull = (contractState: AccountStateFull, code: Cell) => {
+    let equals = false;
+    if(contractState.account.state.type === 'active') {
+        if(contractState.account.state.code !== null) {
+            equals = code.equals(Cell.fromBase64(contractState.account.state.code));
+        }
+    }
+    return equals;
+}
+
+// Feels like i could have figured out something callback based instead of those three similar handlers...You've guessed it, not today.
+const lockAction = async (provider: NetworkProvider, ui: UIProvider, lock: boolean) => {
+    const lockPrompt = lock ? 'lock' : 'unlock';
+    let   retry: boolean;
+    do {
+        const lockAddr   = await promptAddress(`Please enter address to ${lockPrompt}:`, ui);
+        const jettonAddr = await minterContract.getWalletAddress(lockAddr);
+        ui.write(`Owned jetton address:${jettonAddr}`);
+        const contractState = await provider.api().getAccountLite(await getLastBlock(provider), jettonAddr);
+        if(contractState.account.state.type === 'active') {
+            if(! (await matchCodeLite(contractState, walletCode))) {
+                const action = await ui.choose('Contract code doesn\'t match current wallet version', ['Continue', 'Switch wallet', 'Stop'], (c: string) => c);
+                if(action == 'Stop')
+                    return;
+                if(action == 'Switch wallet') {
+                    retry = true;
+                    // Jump at the end of the block
+                    continue;
+                }
+            }
+            const jettonWalelt = provider.open(JettonWallet.createFromAddress(jettonAddr));
+            if((await jettonWalelt.getWalletStatus()) == Number(lock)) {
+                ui.write(`Jetton wallet owned by:${lockAddr} is already ${lockPrompt}ed!`);
+                retry = false;
+            }
+            else {
+                // We could have re-used data from contractState but it's impossible to tell how long dialogs will take, and we need fresh tx lt
+                const prevTx = await getAccountLastTx(provider, minterContract.address);
+                await minterContract.sendLockWallet(provider.sender(), lockAddr, lock, toNano('0.05'));
+                const gotTrans = await waitForTransaction(provider, minterContract.address, prevTx, 10);
+                if(gotTrans) {
+                    const lockAfter = await jettonWalelt.getWalletStatus();
+                    if(lockAfter !== Number(lock)) {
+                        retry = await promptBool(`Failed to ${lockPrompt} wallet.\nSomething went wrong\nRetry?`,['Yes','No'], ui, true);
+                    }
+                    else {
+                        ui.write(`Jetton wallet ${jettonAddr} ${lockPrompt}ed successfully!`);
+                        retry = false;
+                    }
+                }
+                else {
+                    failedTransMessage(ui);
+                    retry = await promptBool('Retry?', ['Yes', 'No'], ui, true);
+                }
+            }
+        }
+        else {
+            retry = await promptBool("Jetton wallet contract is not active!\nRetry?", ['Yes','No'], ui, true);
+        }
+    } while(retry);
+}
+
+const transferAction = async (provider: NetworkProvider, ui: UIProvider) => {
+    let   retry: boolean;
+    do {
+        const fromAddr = await promptAddress('Please enter jetton owner address to transfer from:', ui);
+        const jettonAddr = await minterContract.getWalletAddress(fromAddr);
+        ui.write(`Owned jetton address:${jettonAddr}`);
+        const contractState = await provider.api().getAccountLite(await getLastBlock(provider), jettonAddr);
+        if(contractState.account.state.type === 'active') {
+            if(! (await matchCodeLite(contractState, walletCode))) {
+                const action = await ui.choose('Contract code doesn\'t match current wallet version', ['Continue', 'Switch wallet', 'Stop'], (c: string) => c);
+                if(action == 'Stop')
+                    return;
+                if(action == 'Switch wallet') {
+                    retry = true;
+                    continue;
+                }
+            }
+            const transferAmount = await promptAmount('Enter transfer amount in decimal form:', ui);
+            const defaultAddr    = provider.sender().address ?? await minterContract.getAdminAddress();
+            const transferTo     = await promptAddress('Enter destination wallet address:', ui, defaultAddr);
+            retry  = await promptBool(`Transfering ${transferAmount} jettons from ${fromAddr} to ${transferTo}\nIs it ok?`, ['Yes', 'No'], ui);
+            if(!retry) {
+                retry = true;
+                continue;
+            }
+            const nanoAmount = toNano(transferAmount);
+            const jettonWalelt = provider.open(JettonWallet.createFromAddress(jettonAddr));
+            const balanceBefore = await jettonWalelt.getJettonBalance();
+
+            const prevTx = await getAccountLastTx(provider, minterContract.address);
+            await minterContract.sendForceTransfer(provider.sender(), nanoAmount, transferTo, fromAddr, null, 0n, null);
+            const gotTrans = await waitForTransaction(provider, minterContract.address, prevTx, 10);
+            if(gotTrans) {
+                const balanceAfter= await jettonWalelt.getJettonBalance();
+                if(balanceAfter == balanceBefore - nanoAmount) {
+                    ui.write(`Successfully transfered:${transferAmount} jettons owned by ${fromAddr}`);
+                    retry = false;
+                }
+                else {
+                    retry = await promptBool(`Failed to transfer jettons\nRetry?`,['Yes','No'], ui, true);
+                }
+            }
+            else {
+                failedTransMessage(ui);
+                retry = await promptBool('Retry?', ['Yes', 'No'], ui, true);
+            }
+        }
+        else {
+            retry = await promptBool("Jetton wallet contract is not active!\nRetry?", ['Yes','No'], ui, true);
+        }
+    } while(retry);
+
+}
+const burnAction = async (provider: NetworkProvider, ui: UIProvider) => {
+    let   retry: boolean;
+    do {
+        const burnAddr = await promptAddress(`Please enter jetton owner address to burn:`, ui);
+        const jettonAddr = await minterContract.getWalletAddress(burnAddr);
+        ui.write(`Owned jetton address:${jettonAddr}`);
+        const contractState = await provider.api().getAccountLite(await getLastBlock(provider), jettonAddr);
+        if(contractState.account.state.type === 'active') {
+            if(! (await matchCodeLite(contractState, walletCode))) {
+                const action = await ui.choose('Contract code doesn\'t match current wallet version', ['Continue', 'Switch wallet', 'Stop'], (c: string) => c);
+                if(action == 'Stop')
+                    return;
+                if(action == 'Switch wallet') {
+                    retry = true;
+                    continue;
+                }
+            }
+            const burnAmount = await promptAmount('Enter burn amount in decimal form:', ui);
+            const allOk      = await promptBool(`Burning ${burnAmount} jettons owned by ${burnAddr}\nIs that ok?`,['Yes', 'No'], ui);
+            if(!allOk) {
+                retry = true;
+                continue;
+            }
+            const nanoAmount = toNano(burnAmount);
+            const jettonWalelt = provider.open(JettonWallet.createFromAddress(jettonAddr));
+            const balanceBefore = await jettonWalelt.getJettonBalance();
+
+            const prevTx = await getAccountLastTx(provider, minterContract.address);
+            // Maybe wait for tx on jetton wallet? Or the owner wallet even?
+            await minterContract.sendForceBurn(provider.sender(), nanoAmount, burnAddr, null);
+            const gotTrans = await waitForTransaction(provider, minterContract.address, prevTx, 10);
+            if(gotTrans) {
+                const balanceAfter= await jettonWalelt.getJettonBalance();
+                if(balanceAfter == balanceBefore - nanoAmount) {
+                    ui.write(`Successfully burned:${burnAmount} jettons owned by ${burnAddr}`);
+                    retry = false;
+                }
+                else {
+                    retry = await promptBool(`Failed to burn jettons\nRetry?`,['Yes','No'], ui, true);
+                }
+            }
+            else {
+                failedTransMessage(ui);
+                retry = await promptBool('Retry?', ['Yes', 'No'], ui, true);
+            }
+        }
+        else {
+            retry = await promptBool("Jetton wallet contract is not active!\nRetry?", ['Yes','No'], ui, true);
+        }
+    } while(retry);
+}
+
 export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
     const sender = provider.sender();
@@ -239,6 +420,7 @@ export async function run(provider: NetworkProvider) {
     }
 
     do {
+        ui.clearActionPrompt();
         const action = await ui.choose("Pick action:", actionList, (c: string) => c);
         switch(action) {
             case 'Mint':
@@ -256,9 +438,23 @@ export async function run(provider: NetworkProvider) {
             case 'Info':
                 await infoAction(provider, ui);
                 break;
+            case 'Lock':
+                await lockAction(provider, ui, true);
+                break;
+            case 'Unlock':
+                await lockAction(provider, ui, false);
+                break;
+            case 'Force transfer':
+                await transferAction(provider, ui);
+                break;
+            case 'Force burn':
+                await burnAction(provider, ui);
+                break;
             case 'Quit':
                 done = true;
                 break;
+            default:
+                ui.write('Operation is not yet supported!');
         }
     } while(!done);
 }
