@@ -389,6 +389,8 @@ PROGRAM{
     NIP
     LDGRAMS
     DROP
+    3 PUSHINT
+    1 MULRSHIFT#
     s0 s2 XCHG
     32 LDU
     OVER
