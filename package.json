@@ -3,11 +3,14 @@
     "description": "",
     "version": "0.1.0",
     "scripts": {
-        "prettier": "npx prettier --write '{test,contracts,build}/**/*.{ts,js,json}'",
-        "test_legacy": "mocha --exit test/**/*.spec.ts",
+        "build": "npx blueprint build",
         "test": "jest sandbox_tests",
-        "build": "ts-node ./build/_build.ts",
-        "deploy": "ts-node ./build/_deploy.ts"
+        "deploy": "npx blueprint run",
+
+        "prettier": "npx prettier --write '{test,contracts,build}/**/*.{ts,js,json}'",
+        "build_legacy": "ts-node ./build/_build.ts",
+        "test_legacy": "mocha --exit test/**/*.spec.ts",
+        "deploy_legacy": "ts-node ./build/_deploy.ts"
     },
     "devDependencies": {
         "@swc/core": "^1.2.177",
