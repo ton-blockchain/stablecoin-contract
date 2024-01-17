@@ -149,6 +149,7 @@ describe("wallet tests", () => {
             })
         );
         expect(sendTransferAdmin.type).to.be.equal("success");
+//        console.log('alice jetton-wallet address = ', sendTransferAdmin.actionList[0]);
 
         contract.setDataCell(wallet.data({
             status: new BN(0),
@@ -202,7 +203,7 @@ describe("wallet tests", () => {
 
         const sendReceive = await contract.sendInternalMessage(
             internalMessage({
-                from: Address.parseFriendly("EQC-FptlRSR1TYvW8fTsY6ZtVuclNoSwynrRdmnJeolWdYtH").address,
+                from: Address.parseFriendly("EQBfaDUzWbvMYD1KzD1T5JE_7WXk_ECSK1kX4ZPHhx9hytAB,").address, // alice jetton-wallet-address
                 value: toNano(70000000),
                 body: wallet.internalTransfer({
                     jettonAmount: new BN(10),
