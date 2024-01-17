@@ -15,7 +15,7 @@ Thus this jetton represents a [standard TON jetton smart contracts](https://gith
 
 - Admin of jetton can burn user's jettons.
 
-- Admin of jetton can lock/unlock user's jetton wallet (`set_status`). If the status is not set to zero, then the user's wallet is locked, the user cannot make transfers; Admin can make transfer even if wallet locked.
+- Admin of jetton can lock/unlock user's jetton wallet (`set_status`). If the status is not set to zero, then the user's wallet is locked, the user cannot make transfers and burns; Admin can make transfer and burn even if wallet locked.
 
 - Admin of jetton can change jetton-minter code and it's full data.
 

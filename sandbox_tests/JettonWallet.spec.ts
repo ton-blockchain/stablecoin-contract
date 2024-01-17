@@ -39,6 +39,10 @@ describe('JettonWallet', () => {
         deployer       = await blockchain.treasury('deployer');
         notDeployer    = await blockchain.treasury('notDeployer');
         defaultContent = beginCell().endCell();
+
+        console.log('jetton minter code hash = ', minter_code.hash().toString('hex'));
+        console.log('jetton wallet code hash = ', jwallet_code.hash().toString('hex'));
+
         jettonMinter   = blockchain.openContract(
                    JettonMinter.createFromConfig(
                      {

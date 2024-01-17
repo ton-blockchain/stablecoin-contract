@@ -2,12 +2,17 @@
 "TonUtil.fif" include
 "Asm.fif" include
 
-."jetton-minter:" cr
 
 "jetton-minter.fif" include
-2 boc+>B dup Bx. cr
+."jetton-minter hash:" cr
+dup hashB dup Bx. cr drop
+."jetton-minter code:" cr
+boc>B dup Bx. cr
 
-."jetton-wallet:" cr
 
 "jetton-wallet.fif" include
-2 boc+>B dup Bx. cr
+."jetton-wallet hash:" cr
+dup hashB dup Bx. cr drop
+."jetton-wallet code:" cr
+boc>B dup Bx. cr
+

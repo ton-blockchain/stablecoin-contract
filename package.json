@@ -39,6 +39,9 @@
         "ts-node": "^10.4.0",
         "typescript": "^4.5.4"
     },
+    "overrides": {
+        "@ton-community/func-js-bin": "0.4.4"
+    },
     "prettier": {
         "printWidth": 180
     },
