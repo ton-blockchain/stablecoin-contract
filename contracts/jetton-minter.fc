@@ -8,6 +8,8 @@
 #include "send-modes.fc";
 #include "jetton-utils.fc";
 
+slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE";
+
 ;; storage scheme
 ;; storage#_ total_supply:Coins admin_address:MsgAddress transfer_admin_address:MsgAddress jetton_wallet_code:^Cell = Storage;
 (int, slice, slice, cell) load_data() inline {
