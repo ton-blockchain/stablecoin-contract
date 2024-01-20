@@ -7,12 +7,8 @@ const workchain = 0;
   throw_unless(error::wrong_workchain, wc == workchain);
 }
 
-int is_resolvable?(slice addr) inline {
+int is_same_workchain(slice addr) inline {
     (int wc, _) = parse_std_addr(addr);
 
     return wc == workchain;
 }
-
-const mint_gas_consumption = 20000000;
-
-const provide_address_gas_consumption = 10000000;
