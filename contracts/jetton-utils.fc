@@ -1,12 +1,11 @@
 #include "params.fc";
 
-cell pack_jetton_wallet_data(int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) inline {
+cell pack_jetton_wallet_data(int status, int balance, slice owner_address, slice jetton_master_address) inline {
    return  begin_cell()
             .store_uint(status, 4)
             .store_coins(balance)
             .store_slice(owner_address)
             .store_slice(jetton_master_address)
-            .store_ref(jetton_wallet_code)
            .end_cell();
 }
 
@@ -22,8 +21,7 @@ cell calculate_jetton_wallet_state_init(slice owner_address, slice jetton_master
           .store_dict(                     ;; Data
                         pack_jetton_wallet_data(0, 0,  ;; Initial state: status 0, balance 0
                                                 owner_address,
-                                                jetton_master_address,
-                                                jetton_wallet_code)
+                                                jetton_master_address)
                      )
           .store_uint(0, 1)                ;; Empty libraries
          .end_cell();

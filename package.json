@@ -40,7 +40,7 @@
         "typescript": "^4.5.4"
     },
     "overrides": {
-        "@ton-community/func-js-bin": "0.4.4"
+        "@ton-community/func-js-bin": "0.4.5-tvmbeta.1"
     },
     "prettier": {
         "printWidth": 180

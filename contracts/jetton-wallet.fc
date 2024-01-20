@@ -31,18 +31,18 @@ const gas_consumption = 15000000; ;; 0.015 TON
 
   storage#_ status:uint4
             balance:Coins owner_address:MsgAddressInt
-            jetton_master_address:MsgAddressInt jetton_wallet_code:^Cell = Storage;
+            jetton_master_address:MsgAddressInt = Storage;
 -}
 
-(int, int, slice, slice, cell) load_data() inline {
+(int, int, slice, slice) load_data() inline {
   slice ds = get_data().begin_parse();
-  var data = (ds~load_uint(4), ds~load_coins(), ds~load_msg_addr(), ds~load_msg_addr(), ds~load_ref());
+  var data = (ds~load_uint(4), ds~load_coins(), ds~load_msg_addr(), ds~load_msg_addr());
   ds.end_parse();
   return data;
 }
 
-() save_data (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) impure inline {
-  set_data(pack_jetton_wallet_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code));
+() save_data (int status, int balance, slice owner_address, slice jetton_master_address) impure inline {
+  set_data(pack_jetton_wallet_data(status, balance, owner_address, jetton_master_address));
 }
 
 {-
@@ -62,7 +62,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
   int jetton_amount = in_msg_body~load_coins();
   slice to_owner_address = in_msg_body~load_msg_addr();
   force_chain(to_owner_address);
-  (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
+  (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
   int is_from_master = equal_slices(jetton_master_address, sender_address);
   throw_unless(error::contract_locked, (status == 0) | is_from_master);
   balance -= jetton_amount;
@@ -70,7 +70,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
   throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | is_from_master);
   throw_unless(error::balance_error, balance >= 0);
 
-  cell state_init = calculate_jetton_wallet_state_init(to_owner_address, jetton_master_address, jetton_wallet_code);
+  cell state_init = calculate_jetton_wallet_state_init(to_owner_address, jetton_master_address, my_code());
   slice to_wallet_address = calculate_jetton_wallet_address(state_init);
   slice response_address = in_msg_body~load_msg_addr();
   cell custom_payload = in_msg_body~load_dict();
@@ -110,7 +110,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
                      ;; and reading ConfigParam21 gas_limit
 
   send_raw_message(msg.end_cell(), CARRY_REMAINING_GAS);
-  save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
+  save_data(status, balance, owner_address, jetton_master_address);
 }
 
 {-
@@ -130,7 +130,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
 () receive_tokens (slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
   ;; NOTE we can not allow fails in action phase since in that case there will be
   ;; no bounce. Thus check and throw in computation phase.
-  (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
+  (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
   int query_id = in_msg_body~load_uint(64);
   int jetton_amount = in_msg_body~load_coins();
   balance += jetton_amount;
@@ -139,7 +139,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
   throw_unless(error::not_valid_wallet,
       equal_slices(jetton_master_address, sender_address)
       |
-      equal_slices(calculate_user_jetton_wallet_address(from_address, jetton_master_address, jetton_wallet_code), sender_address)
+      equal_slices(calculate_user_jetton_wallet_address(from_address, jetton_master_address, my_code()), sender_address)
   );
   int forward_ton_amount = in_msg_body~load_coins();
 
@@ -179,7 +179,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
     send_raw_message(msg.end_cell(), IGNORE_ERRORS);
   }
 
-  save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
+  save_data(status, balance, owner_address, jetton_master_address);
 }
 
 {-
@@ -195,7 +195,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
 () burn_tokens (slice in_msg_body, slice sender_address, int msg_value, int fwd_fee) impure {
   ;; NOTE we can not allow fails in action phase since in that case there will be
   ;; no bounce. Thus check and throw in computation phase.
-  (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
+  (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
   int query_id = in_msg_body~load_uint(64);
   int jetton_amount = in_msg_body~load_coins();
   slice response_address = in_msg_body~load_msg_addr();
@@ -225,18 +225,18 @@ const gas_consumption = 15000000; ;; 0.015 TON
 
   send_raw_message(msg.end_cell(), CARRY_REMAINING_GAS);
 
-  save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
+  save_data(status, balance, owner_address, jetton_master_address);
 }
 
 () on_bounce (slice in_msg_body) impure {
   in_msg_body~skip_bits(32); ;; 0xFFFFFFFF
-  (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
+  (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
   int op = in_msg_body~load_uint(32);
   throw_unless(error::wrong_op, (op == op::internal_transfer) | (op == op::burn_notification));
   int query_id = in_msg_body~load_uint(64);
   int jetton_amount = in_msg_body~load_coins();
   balance += jetton_amount;
-  save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
+  save_data(status, balance, owner_address, jetton_master_address);
 }
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -277,9 +277,9 @@ const gas_consumption = 15000000; ;; 0.015 TON
   if (op == op::set_status) {
     in_msg_body~skip_bits(64); ;; query_id
     int new_status = in_msg_body~load_uint(4);
-    (int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
+    (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     throw_unless(error::not_valid_wallet, equal_slices(sender_address, jetton_master_address));
-    save_data(new_status, balance, owner_address, jetton_master_address, jetton_wallet_code);
+    save_data(new_status, balance, owner_address, jetton_master_address);
     return ();
   }
 
@@ -287,11 +287,11 @@ const gas_consumption = 15000000; ;; 0.015 TON
 }
 
 (int, slice, slice, cell) get_wallet_data() method_id {
-  (_, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
-  return (balance, owner_address, jetton_master_address, jetton_wallet_code);
+  (_, int balance, slice owner_address, slice jetton_master_address) = load_data();
+  return (balance, owner_address, jetton_master_address, my_code());
 }
 
 int get_status() method_id {
-  (int status, _, _, _, _) = load_data();
+  (int status, _, _, _) = load_data();
   return status;
 }
