@@ -1,3 +1,5 @@
+#include "op-codes.fc";
+
 const workchain = 0;
 
 () force_chain(slice addr) impure {

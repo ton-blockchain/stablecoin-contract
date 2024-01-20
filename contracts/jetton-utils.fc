@@ -1,3 +1,5 @@
+#include "params.fc";
+
 cell pack_jetton_wallet_data(int status, int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) inline {
    return  begin_cell()
             .store_uint(status, 4)
