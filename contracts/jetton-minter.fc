@@ -61,7 +61,7 @@
 
     msg = msg.store_ref(master_msg);
 
-  send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | PAY_FEES_SEPARATELY);
+  send_raw_message(msg.end_cell(), PAY_FEES_SEPARATELY);
 
 }
 
@@ -162,7 +162,7 @@
         } else {
             msg = msg.store_uint(0, 2); ;; addr_none
         }
-        send_raw_message(msg.store_maybe_ref(included_address).end_cell(), REVERT_ON_ERRORS | CARRY_REMAINING_GAS);
+        send_raw_message(msg.store_maybe_ref(included_address).end_cell(), CARRY_REMAINING_GAS);
         return ();
     }
 

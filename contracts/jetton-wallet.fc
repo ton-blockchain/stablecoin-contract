@@ -109,7 +109,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
                      ;; msg_fwd_fee(to_wallet, msg_body, state_init, 15)
                      ;; and reading ConfigParam21 gas_limit
 
-  send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | CARRY_REMAINING_GAS);
+  send_raw_message(msg.end_cell(), CARRY_REMAINING_GAS);
   save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
 }
 
@@ -165,7 +165,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
       .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
       .store_ref(msg_body);
 
-    send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | PAY_FEES_SEPARATELY);
+    send_raw_message(msg.end_cell(), PAY_FEES_SEPARATELY);
   }
 
   if ((response_address.preload_uint(2) != 0) & (msg_value > 0)) {
@@ -223,7 +223,7 @@ const gas_consumption = 15000000; ;; 0.015 TON
     .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
     .store_ref(msg_body);
 
-  send_raw_message(msg.end_cell(), REVERT_ON_ERRORS | CARRY_REMAINING_GAS);
+  send_raw_message(msg.end_cell(), CARRY_REMAINING_GAS);
 
   save_data(status, balance, owner_address, jetton_master_address, jetton_wallet_code);
 }
