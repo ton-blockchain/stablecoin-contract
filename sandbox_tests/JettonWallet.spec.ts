@@ -19,7 +19,7 @@ import { Op, Errors } from '../wrappers/JettonConstants';
 
 //jetton params
 
-let fwd_fee = 1804014n, gas_consumption = 10000000n, min_tons_for_storage = 10000000n;
+let fwd_fee = 1804014n, gas_consumption = 15000000n, min_tons_for_storage = 10000000n;
 //let fwd_fee = 1804014n, gas_consumption = 14000000n, min_tons_for_storage = 10000000n;
 
 describe('JettonWallet', () => {
@@ -533,7 +533,7 @@ describe('JettonWallet', () => {
        let initialJettonBalance   = await deployerJettonWallet.getJettonBalance();
        let initialTotalSupply     = await jettonMinter.getTotalSupply();
        let burnAmount   = toNano('0.01');
-       let fwd_fee      = 1492012n /*1500012n*/, gas_consumption = 10000000n;
+       let fwd_fee      = 1492012n /*1500012n*/, gas_consumption = 15000000n;
        let minimalFee   = fwd_fee + 2n*gas_consumption;
 
        const sendLow    = await deployerJettonWallet.sendBurn(deployer.getSender(), minimalFee, // ton amount

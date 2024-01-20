@@ -21,7 +21,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
 #include "jetton-utils.fc";
 
 const min_tons_for_storage = 10000000; ;; 0.01 TON
-const gas_consumption = 10000000; ;; 0.01 TON
+const gas_consumption = 15000000; ;; 0.015 TON
 
 {-
   Storage
@@ -75,6 +75,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
   slice response_address = in_msg_body~load_msg_addr();
   cell custom_payload = in_msg_body~load_dict();
   int forward_ton_amount = in_msg_body~load_coins();
+  throw_unless(error::invalid_message, slice_bits(in_msg_body) >= 1);
   slice either_forward_payload = in_msg_body;
   var msg = begin_cell()
     .store_uint(0x18, 6)
@@ -158,7 +159,7 @@ const gas_consumption = 10000000; ;; 0.01 TON
         .end_cell();
 
     var msg = begin_cell()
-      .store_uint(0x18, 6)
+      .store_uint(0x10, 6)
       .store_slice(owner_address)
       .store_coins(forward_ton_amount)
       .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
