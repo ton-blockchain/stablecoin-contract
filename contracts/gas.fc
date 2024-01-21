@@ -1,0 +1,62 @@
+const int CONFIG::storage_prices = 18;
+const int CONFIG::basechain_gas_prices = 21;
+const int CONFIG::basechain_fwd_prices = 25;
+
+;;const mint_gas_consumption = 20000000; ;; todo
+const provide_address_gas_consumption = 10000000; ;; todo
+
+const min_tons_for_storage = 10000000; ;; 0.01 TON todo
+
+const jetton_walllet_bits = 123; ;; todo
+const jetton_walllet_cells = 123; ;; todo
+
+
+const send_transfer_gas_consumption = 15000000; ;; todo
+const receive_transfer_gas_consumption = 15000000; ;; todo
+
+const send_burn_gas_consumption = 15000000; ;; todo
+const receive_burn_gas_consumption = 15000000; ;; todo
+
+
+
+
+( int, int, int, int, int, int) get_fee_constants() {
+    slice gas_config = config_param(CONFIG::basechain_gas_prices).begin_parse();
+    gas_config~skip_bits(8); ;;gas_flat_pfx tag
+    (int flat_gas_limit, int flat_gas_price) = (gas_config~load_uint(64), gas_config~load_uint(64));
+    gas_config~skip_bits(8); ;;gas_prices tag
+    (int gas_price) = (gas_config~load_uint(64));
+
+    slice fwd_config = config_param(CONFIG::basechain_fwd_prices).begin_parse().skip_bits(8); ;; skip tag
+    (int lump_price, int bit_price, int cell_price) = (fwd_config~load_uint(64), fwd_config~load_uint(64), fwd_config~load_uint(64));
+
+    return ( flat_gas_limit, flat_gas_price, gas_price, lump_price, bit_price, cell_price);
+}
+
+int flat_gas_wrapper(int flat_gas_limit, int flat_gas_price, int gas_price, int gas) {
+    ;; Gas calculation: https://github.com/ton-blockchain/ton/blob/51baec48a02e5ba0106b0565410d2c2fd4665157/crypto/block/transaction.cpp#L1124
+    int flat_part = min(gas, flat_gas_limit);
+    return flat_gas_price + ((gas - flat_part) * gas_price ^/ 65536);
+}
+
+int get_execute_fees(int gas) {
+    var (flat_gas_limit, flat_gas_price, gas_price, lump_price, bit_price, cell_price) = get_fee_constants();
+    return flat_gas_wrapper(flat_gas_limit, flat_gas_price, gas_price, gas);
+}
+
+(int, int ) get_storage_fees() {
+    cell storage_config = config_param(CONFIG::storage_prices);
+    ;; lets get latest prices
+    (int timestamp, slice storage_slice, int found?) = storage_config.udict_get_max?(32);
+    storage_slice~skip_bits(32 + 8); ;; skip constructor byte and utime_since
+    (int bit_price_ps, int cell_price_ps) = (storage_slice~load_uint(64), storage_slice~load_uint(64));
+    return (bit_price_ps, cell_price_ps);
+}
+
+int get_min_tons_for_storage() {
+    var (bit_price_ps, cell_price_ps) = get_storage_fees();
+
+    int duration = 123; ;; todo 5 years
+
+    return (jetton_walllet_bits * bit_price_ps + jetton_walllet_cells * cell_price_ps) * duration ^/ 65536;
+}
