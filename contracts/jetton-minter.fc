@@ -7,12 +7,9 @@
 #include "params.fc";
 #include "send-modes.fc";
 #include "jetton-utils.fc";
+#include "gas.fc";
 
-const mint_gas_consumption = 20000000;
-
-const provide_address_gas_consumption = 10000000;
-
-slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE";
+slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
 
 ;; storage scheme
 ;; storage#_ total_supply:Coins admin_address:MsgAddress transfer_admin_address:MsgAddress jetton_wallet_code:^Cell = Storage;
@@ -90,11 +87,6 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE";
         return ();
     }
     slice sender_address = cs~load_msg_addr();
-    cs~load_msg_addr(); ;; skip dst
-    cs~load_coins(); ;; skip value
-    cs~skip_bits(1); ;; skip extracurrency collection
-    cs~load_coins(); ;; skip ihr_fee
-    int fwd_fee = muldiv(cs~load_coins(), 3, 2); ;; we use message fwd_fee for estimation of provide_wallet_address cost
 
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
@@ -106,7 +98,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE";
         slice to_address = in_msg_body~load_msg_addr();
         force_chain(to_address);
         int amount = in_msg_body~load_coins();
-        throw_unless(error::invalid_op, amount >= mint_gas_consumption + fwd_fee);
+
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
         throw_unless(error::invalid_op, master_msg_cs~load_uint(32) == op::internal_transfer);
@@ -146,8 +138,6 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE";
     }
 
     if (op == op::provide_wallet_address) {
-        throw_unless(error::not_enough_gas, msg_value > fwd_fee + provide_address_gas_consumption);
-
         slice owner_address = in_msg_body~load_msg_addr();
         int include_address? = in_msg_body~load_uint(1);
 
@@ -168,7 +158,12 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE";
         } else {
             msg = msg.store_uint(0, 2); ;; addr_none
         }
-        send_raw_message(msg.store_maybe_ref(included_address).end_cell(), CARRY_REMAINING_GAS);
+
+        cell msg_cell = msg.store_maybe_ref(included_address).end_cell();
+;;        int fwd_fee = send_message(msg_cell, CALCULATE_FEE);
+;;        throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(provide_address_gas_consumption));
+
+        send_raw_message(msg_cell, CARRY_REMAINING_GAS);
         return ();
     }
 

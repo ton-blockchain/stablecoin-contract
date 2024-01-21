@@ -635,3 +635,4 @@ int builder_null?(builder b) asm "ISNULL";
 builder store_builder(builder to, builder from) asm "STBR";
 
 cell my_code() asm "MYCODE";
+int send_message(cell msg, int mode) impure asm "SENDMSG";
