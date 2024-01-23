@@ -2,20 +2,19 @@ const int CONFIG::storage_prices = 18;
 const int CONFIG::basechain_gas_prices = 21;
 const int CONFIG::basechain_fwd_prices = 25;
 
-;;const mint_gas_consumption = 20000000; ;; todo
-const provide_address_gas_consumption = 10000000; ;; todo
+;;const mint_gas_consumption = 11157; ;; todo
+const provide_address_gas_consumption = 309; ;; todo
 
-const min_tons_for_storage = 10000000; ;; 0.01 TON todo
+const jetton_walllet_bits  = 8180; ;; todo
+const jetton_walllet_cells = 30; ;; todo
+;;const jetton_wallet_storage_fees = 55771216;
 
-const jetton_walllet_bits = 123; ;; todo
-const jetton_walllet_cells = 123; ;; todo
 
+const send_transfer_gas_consumption    = 16258;
+const receive_transfer_gas_consumption = 12556;
 
-const send_transfer_gas_consumption = 15000000; ;; todo
-const receive_transfer_gas_consumption = 15000000; ;; todo
-
-const send_burn_gas_consumption = 15000000; ;; todo
-const receive_burn_gas_consumption = 15000000; ;; todo
+const send_burn_gas_consumption    = 9302; ;; todo
+const receive_burn_gas_consumption = 6542; ;; todo
 
 
 
@@ -33,15 +32,15 @@ const receive_burn_gas_consumption = 15000000; ;; todo
     return ( flat_gas_limit, flat_gas_price, gas_price, lump_price, bit_price, cell_price);
 }
 
-int flat_gas_wrapper(int flat_gas_limit, int flat_gas_price, int gas_price, int gas) {
+int flat_gas_wrapper(int flat_gas_limit, int flat_gas_price, int gas_price, int gas) inline {
     ;; Gas calculation: https://github.com/ton-blockchain/ton/blob/51baec48a02e5ba0106b0565410d2c2fd4665157/crypto/block/transaction.cpp#L1124
     int flat_part = min(gas, flat_gas_limit);
     return flat_gas_price + ((gas - flat_part) * gas_price ^/ 65536);
 }
 
-int get_execute_fees(int gas) {
+int get_execute_fees(int gas1, int gas2) {
     var (flat_gas_limit, flat_gas_price, gas_price, lump_price, bit_price, cell_price) = get_fee_constants();
-    return flat_gas_wrapper(flat_gas_limit, flat_gas_price, gas_price, gas);
+    return flat_gas_wrapper(flat_gas_limit, flat_gas_price, gas_price, gas1) + flat_gas_wrapper(flat_gas_limit, flat_gas_price, gas_price, gas2);
 }
 
 (int, int ) get_storage_fees() {
@@ -56,7 +55,7 @@ int get_execute_fees(int gas) {
 int get_min_tons_for_storage() {
     var (bit_price_ps, cell_price_ps) = get_storage_fees();
 
-    int duration = 123; ;; todo 5 years
+    int duration = 5 * 365 * 24 * 3600; ;; todo 5 years
 
     return (jetton_walllet_bits * bit_price_ps + jetton_walllet_cells * cell_price_ps) * duration ^/ 65536;
 }
