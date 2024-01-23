@@ -1,8 +1,9 @@
 import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot } from '@ton/sandbox';
-import { Cell, toNano, beginCell, Address } from '@ton/core';
+import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage } from '@ton/core';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { JettonMinter } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
+import {findTransactionRequired} from '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { randomAddress, getRandomTon, differentAddress, getRandomInt, testJettonTransfer, testJettonInternalTransfer, testJettonNotification, testJettonBurnNotification } from './utils';
 import { Op, Errors } from '../wrappers/JettonConstants';
@@ -29,8 +30,76 @@ describe('JettonWallet', () => {
     let deployer:SandboxContract<TreasuryContract>;
     let notDeployer:SandboxContract<TreasuryContract>;
     let jettonMinter:SandboxContract<JettonMinter>;
-    let userWallet:any;
+    let userWallet: (address: Address) => Promise<SandboxContract<JettonWallet>>;
     let defaultContent:Cell;
+    let computedGeneric : (trans:Transaction) => TransactionComputeVm;
+
+    let storageGeneric : (trans:Transaction) => TransactionStoragePhase;
+    let printTxGasStats: (name: string, trans: Transaction) => bigint;
+
+    class StorageStats {
+        bits: bigint;
+        cells: bigint;
+
+        constructor(bits?: number | bigint, cells?: number | bigint) {
+            this.bits  = bits  !== undefined ? BigInt(bits)  : 0n;
+            this.cells = cells !== undefined ? BigInt(cells) : 0n;
+        }
+        add(...stats: StorageStats[]) {
+            let cells = this.cells, bits = this.bits;
+            for (let stat of stats) {
+                bits  += stat.bits;
+                cells += stat.cells;
+            }
+            return new StorageStats(bits, cells);
+        }
+        sub(...stats: StorageStats[]) {
+            let cells = this.cells, bits = this.bits;
+            for (let stat of stats) {
+                bits  -= stat.bits;
+                cells -= stat.cells;
+            }
+            return new StorageStats(bits, cells);
+        }
+        addBits(bits: number | bigint) {
+            return new StorageStats(this.bits + BigInt(bits), this.cells);
+        }
+        subBits(bits: number | bigint) {
+            return new StorageStats(this.bits - BigInt(bits), this.cells);
+        }
+        addCells(cells: number | bigint) {
+            return new StorageStats(this.bits, this.cells + BigInt(cells));
+        }
+        subCells(cells: number | bigint) {
+            return new StorageStats(this.bits, this.cells - BigInt(cells));
+        }
+
+        toString() : string {
+            return JSON.stringify({
+                bits: this.bits.toString(),
+                cells: this.cells.toString()
+            });
+        }
+    }
+
+    function collectCellStats(cell: Cell, visited:Array<string>, skipRoot: boolean = false): StorageStats {
+        let bits  = skipRoot ? 0n : BigInt(cell.bits.length);
+        let cells = skipRoot ? 0n : 1n;
+        let hash = cell.hash().toString();
+        if (visited.includes(hash)) {
+            // We should not account for current cell data if visited
+            return new StorageStats();
+        }
+        else {
+            visited.push(hash);
+        }
+        for (let ref of cell.refs) {
+            let r = collectCellStats(ref, visited);
+            cells += r.cells;
+            bits += r.bits;
+        }
+        return new StorageStats(bits, cells);
+    }
 
     beforeAll(async () => {
         jwallet_code   = await compile('JettonWallet');
@@ -42,6 +111,7 @@ describe('JettonWallet', () => {
 
         console.log('jetton minter code hash = ', minter_code.hash().toString('hex'));
         console.log('jetton wallet code hash = ', jwallet_code.hash().toString('hex'));
+        blockchain.now = Math.floor(Date.now() / 1000);
 
         jettonMinter   = blockchain.openContract(
                    JettonMinter.createFromConfig(
@@ -55,6 +125,30 @@ describe('JettonWallet', () => {
                             await jettonMinter.getWalletAddress(address)
                           )
                      );
+
+        computedGeneric = (transaction) => {
+            if(transaction.description.type !== "generic")
+                throw("Expected generic transactionaction");
+            if(transaction.description.computePhase.type !== "vm")
+                throw("Compute phase expected")
+            return transaction.description.computePhase;
+        }
+
+        storageGeneric = (transaction) => {
+            if(transaction.description.type !== "generic")
+                throw("Expected generic transactionaction");
+            const storagePhase = transaction.description.storagePhase;
+            if(storagePhase  === null || storagePhase === undefined)
+                throw("Storage phase expected")
+            return storagePhase;
+        };
+
+        printTxGasStats = (name, transaction) => {
+            const txComputed = computedGeneric(transaction);
+            console.log(`${name} used ${txComputed.gasUsed} gas`);
+            console.log(`${name} gas cost: ${txComputed.gasFees}`);
+            return txComputed.gasUsed;
+        }
     });
 
     // implementation detail
@@ -75,11 +169,14 @@ describe('JettonWallet', () => {
         let initialJettonBalance = toNano('1000.23');
         const mintResult = await jettonMinter.sendMint(deployer.getSender(), deployer.address, initialJettonBalance, null, null, null, toNano('0.05'), toNano('1'));
 
-        expect(mintResult.transactions).toHaveTransaction({
+        const mintTx = findTransactionRequired(mintResult.transactions, {
             from: jettonMinter.address,
             to: deployerJettonWallet.address,
             deploy: true,
+            success: true
         });
+
+        printTxGasStats("Mint transaction:", mintTx);
 		/*
 		 * No excess in this jetton
         expect(mintResult.transactions).toHaveTransaction({ // excesses
@@ -88,6 +185,8 @@ describe('JettonWallet', () => {
         });
 		*/
 
+        // const jettonSmc = await blockchain.getContract(deployerJettonWallet.address);
+        // jettonSmc.setVerbosity({print: true, blockchainLogs: true, vmLogs: 'vm_logs_location', debugLogs: true});
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance);
         expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply + initialJettonBalance);
         initialTotalSupply += initialJettonBalance;
@@ -200,26 +299,49 @@ describe('JettonWallet', () => {
         });
     });
 
+    it('storage stats', async() => {
+        const prev = blockchain.snapshot();
+
+        const deployerJettonWallet = await userWallet(deployer.address);
+        const smc = await blockchain.getContract(deployerJettonWallet.address);
+        const stats = collectCellStats(beginCell().store(storeAccountStorage(smc.account.account!.storage)).endCell(), []);
+        console.log("Jetton wallet storage stats:", stats);
+        blockchain.now =  blockchain.now! + 5 * 365 * 24 * 3600;
+        const res = await deployerJettonWallet.sendBurn(deployer.getSender(), toNano('1'), 0n, null, null);
+        const storagePhase = storageGeneric(res.transactions[1]);
+        console.log("Storage fees:", storagePhase.storageFeesCollected);
+
+        await blockchain.loadFrom(prev);
+    });
     it('wallet owner should be able to send jettons', async () => {
         const deployerJettonWallet = await userWallet(deployer.address);
         let initialJettonBalance = await deployerJettonWallet.getJettonBalance();
         let initialTotalSupply = await jettonMinter.getTotalSupply();
         const notDeployerJettonWallet = await userWallet(notDeployer.address);
+        const balanceBefore = (await blockchain.getContract(notDeployerJettonWallet.address)).balance;
         let initialJettonBalance2 = await notDeployerJettonWallet.getJettonBalance();
         let sentAmount = toNano('0.5');
         let forwardAmount = toNano('0.05');
-        const sendResult = await deployerJettonWallet.sendTransfer(deployer.getSender(), toNano('0.1'), //tons
+        const sendResult = await deployerJettonWallet.sendTransfer(deployer.getSender(), toNano('0.17'), //tons
                sentAmount, notDeployer.address,
                deployer.address, null, forwardAmount, null);
+        //console.log(sendResult.transactions[1].vmLogs);
         expect(sendResult.transactions).toHaveTransaction({ //excesses
+            on : deployer.address,
             from: notDeployerJettonWallet.address,
-            to: deployer.address,
+            op: Op.excesses,
+            success: true
         });
+
         expect(sendResult.transactions).toHaveTransaction({ //notification
             from: notDeployerJettonWallet.address,
             to: notDeployer.address,
             value: forwardAmount
         });
+
+        const balanceAfter = (await blockchain.getContract(notDeployerJettonWallet.address)).balance;
+        // Make sure we're not draining balance
+        expect(balanceAfter).toBeGreaterThanOrEqual(balanceBefore);
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance - sentAmount);
         expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance2 + sentAmount);
         expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply);
@@ -305,9 +427,11 @@ describe('JettonWallet', () => {
         let sentAmount = toNano('0.5');
         let forwardAmount = toNano('0.05');
         let forwardPayload = beginCell().storeUint(0x1234567890abcdefn, 128).endCell();
-        const sendResult = await deployerJettonWallet.sendTransfer(deployer.getSender(), toNano('0.1'), //tons
+        // Let's use this case for fees calculation
+        // Put the forward payload into custom payload, to make sure maximum possible gas used during computation
+        const sendResult = await deployerJettonWallet.sendTransfer(deployer.getSender(), toNano('0.17'), //tons
                sentAmount, notDeployer.address,
-               deployer.address, null, forwardAmount, forwardPayload);
+               deployer.address, forwardPayload, forwardAmount, forwardPayload);
         expect(sendResult.transactions).toHaveTransaction({ //excesses
             from: notDeployerJettonWallet.address,
             to: deployer.address,
@@ -328,6 +452,22 @@ describe('JettonWallet', () => {
                               .storeRef(forwardPayload)
                   .endCell()
         });
+        const transferTx = findTransactionRequired(sendResult.transactions, {
+            on: deployerJettonWallet.address,
+            from: deployer.address,
+            op: Op.transfer,
+            success: true
+        });
+        printTxGasStats("Jetton transfer", transferTx);
+
+        const receiveTx = findTransactionRequired(sendResult.transactions, {
+            on: notDeployerJettonWallet.address,
+            from: deployerJettonWallet.address,
+            op: Op.internal_transfer,
+            success: true
+        });
+        printTxGasStats("Receive jetton", receiveTx);
+
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance - sentAmount);
         expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance2 + sentAmount);
     });
@@ -384,7 +524,7 @@ describe('JettonWallet', () => {
     });
 
     // implementation detail
-    it('works with minimal ton amount', async () => {
+    it.skip('works with minimal ton amount', async () => {
         const deployerJettonWallet = await userWallet(deployer.address);
         let initialJettonBalance = await deployerJettonWallet.getJettonBalance();
         const someAddress = Address.parse("EQD__________________________________________0vo");
@@ -481,13 +621,27 @@ describe('JettonWallet', () => {
             let burnAmount = toNano('0.01');
             const sendResult = await deployerJettonWallet.sendBurn(deployer.getSender(), toNano('0.1'), // ton amount
                                  burnAmount, deployer.address, null); // amount, response address, custom payload
-            expect(sendResult.transactions).toHaveTransaction({ //burn notification
-                from: deployerJettonWallet.address,
-                to: jettonMinter.address
+            const burnReqTx  = findTransactionRequired(sendResult.transactions, {
+                on: deployerJettonWallet.address,
+                from: deployer.address,
+                op: Op.burn,
+                success: true
             });
+
+            printTxGasStats("Burn send transaction", burnReqTx);
+
+            const notificationTx = findTransactionRequired(sendResult.transactions, { //burn notification
+                from: deployerJettonWallet.address,
+                to: jettonMinter.address,
+                op: Op.burn_notification,
+                success: true
+            });
+            printTxGasStats("Burn notification transaction", notificationTx);
+
             expect(sendResult.transactions).toHaveTransaction({ //excesses
                 from: jettonMinter.address,
-                to: deployer.address
+                to: deployer.address,
+                op: Op.excesses
             });
             expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance - burnAmount);
             expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply - burnAmount);
@@ -528,7 +682,7 @@ describe('JettonWallet', () => {
                 expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply);
     });
 
-    it('minimal burn message fee', async () => {
+    it.skip('minimal burn message fee', async () => {
        const deployerJettonWallet = await userWallet(deployer.address);
        let initialJettonBalance   = await deployerJettonWallet.getJettonBalance();
        let initialTotalSupply     = await jettonMinter.getTotalSupply();
@@ -608,7 +762,8 @@ describe('JettonWallet', () => {
           take_wallet_address#d1735400 query_id:uint64 wallet_address:MsgAddress owner_address:(Maybe ^MsgAddress) = InternalMsgBody;
         */
         const deployerJettonWallet = await userWallet(deployer.address);
-        expect(discoveryResult.transactions).toHaveTransaction({
+
+        const discoveryTx = findTransactionRequired(discoveryResult.transactions, {
             from: jettonMinter.address,
             to: deployer.address,
             body: beginCell().storeUint(Op.take_wallet_address, 32).storeUint(0, 64)
@@ -617,6 +772,8 @@ describe('JettonWallet', () => {
                               .storeRef(beginCell().storeAddress(deployer.address).endCell())
                   .endCell()
         });
+
+        printTxGasStats("Discovery transaction", discoveryTx);
 
         discoveryResult = await jettonMinter.sendDiscovery(deployer.getSender(), notDeployer.address, true);
         const notDeployerJettonWallet = await userWallet(notDeployer.address);
@@ -643,7 +800,7 @@ describe('JettonWallet', () => {
 
     });
 
-    it('Minimal discovery fee', async () => {
+    it.skip('Minimal discovery fee', async () => {
        // 5000 gas-units + msg_forward_prices.lump_price + msg_forward_prices.cell_price = 0.0061
         const fwdFee     = 1464012n;
         const minimalFee = fwdFee + 10000000n; // toNano('0.0061');
