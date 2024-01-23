@@ -12,7 +12,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
 
 -}
 
-#pragma version >=0.2.0;
+#pragma version >=0.4.3;
 
 #include "stdlib.fc";
 #include "op-codes.fc";
@@ -95,7 +95,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
   .store_ref(msg_body)
   .end_cell();
 
-  int fwd_fee = send_message(msg, CALCULATE_FEE);
+  int fwd_fee = send_message(msg, CARRY_REMAINING_GAS | BOUNCE_ON_ACTION_FAIL);
   int fwd_count = forward_ton_amount ? 2 : 1; ;; second sending (forward) will be cheaper that first
 
   throw_unless(error::not_enough_gas, msg_value >
@@ -112,7 +112,6 @@ This is suitable for most tokens, if you need tokens transferable between workch
                      ;; msg_fwd_fee(to_wallet, msg_body, state_init, 15)
                      ;; and reading ConfigParam21 gas_limit
 
-  send_raw_message(msg, CARRY_REMAINING_GAS);
   save_data(status, balance, owner_address, jetton_master_address);
 }
 
@@ -148,6 +147,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
   int forward_ton_amount = in_msg_body~load_coins();
 
   int ton_balance_before_msg = my_ton_balance - msg_value;
+  raw_reserve(max(ton_balance_before_msg, get_min_tons_for_storage()), 2);
 
   if (forward_ton_amount) {
     slice either_forward_payload = in_msg_body;
@@ -168,12 +168,10 @@ This is suitable for most tokens, if you need tokens transferable between workch
       .store_ref(msg_body)
       .end_cell();
 
-    send_raw_message(msg, PAY_FEES_SEPARATELY);
+    send_raw_message(msg, PAY_FEES_SEPARATELY | BOUNCE_ON_ACTION_FAIL);
   }
 
   if ((response_address.preload_uint(2) != 0)) {
-    raw_reserve(max(ton_balance_before_msg, get_min_tons_for_storage()), 2);
-
     cell msg = begin_cell()
       .store_uint(0x10, 6) ;; nobounce
       .store_slice(response_address)
@@ -182,7 +180,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
       .store_uint(op::excesses, 32)
       .store_uint(query_id, 64)
       .end_cell();
-    send_raw_message(msg, CARRY_REMAINING_GAS | IGNORE_ERRORS);
+    send_raw_message(msg, CARRY_REMAINING_BALANCE | IGNORE_ERRORS);
   }
 
   save_data(status, balance, owner_address, jetton_master_address);
@@ -229,11 +227,9 @@ This is suitable for most tokens, if you need tokens transferable between workch
     .store_ref(msg_body)
     .end_cell();
 
-  int fwd_fee = send_message(msg, CALCULATE_FEE);
+  int fwd_fee = send_message(msg, CARRY_REMAINING_GAS);
 
   throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(send_burn_gas_consumption + receive_burn_gas_consumption));
-
-  send_raw_message(msg, CARRY_REMAINING_GAS);
 
   save_data(status, balance, owner_address, jetton_master_address);
 }
