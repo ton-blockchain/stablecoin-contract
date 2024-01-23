@@ -15,6 +15,8 @@ export type JettonMinterConfigFull = {
     wallet_code: Cell
 }
 
+export type LockType = 'out' | 'in' | 'full' | 'unlock';
+
 export function jettonMinterConfigCellToConfig(config: Cell) : JettonMinterConfigFull {
     const sc = config.beginParse()
     return {
@@ -154,17 +156,34 @@ export class JettonMinter implements Contract {
             value: toNano("0.1"),
         });
     }
-    static lockWalletMessage(lock_address: Address, lock: boolean = true, amount: bigint, query_id: bigint | number = 0) {
+    static lockWalletMessage(lock_address: Address, lock: number, amount: bigint, query_id: bigint | number = 0) {
         return beginCell().storeUint(Op.call_to, 32).storeUint(query_id, 64)
                           .storeAddress(lock_address)
                           .storeCoins(amount)
-                          .storeRef(beginCell().storeUint(Op.set_status, 32).storeUint(query_id, 64).storeUint(Number(lock), 4).endCell())
+                          .storeRef(beginCell().storeUint(Op.set_status, 32).storeUint(query_id, 64).storeUint(lock, 4).endCell())
                .endCell();
     }
-    async sendLockWallet(provider: ContractProvider, via: Sender, lock_address: Address, lock: boolean, amount: bigint = toNano('0.1'), query_id: bigint | number = 0) {
+    async sendLockWallet(provider: ContractProvider, via: Sender, lock_address: Address, lock: LockType, amount: bigint = toNano('0.1'), query_id: bigint | number = 0) {
+        let lockCmd: number;
+        switch(lock) {
+            case 'out':
+                lockCmd = 1;
+                break;
+            case 'in':
+                lockCmd = 2;
+                break;
+            case 'full':
+                lockCmd = 3;
+                break;
+            case 'unlock':
+                lockCmd = 0;
+                break;
+            default:
+                throw new Error("Invalid argument!");
+        }
         await provider.internal(via, {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: JettonMinter.lockWalletMessage(lock_address, lock, amount, query_id),
+            body: JettonMinter.lockWalletMessage(lock_address, lockCmd, amount, query_id),
             value: amount + toNano('0.1')
         });
     }
