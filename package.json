@@ -6,7 +6,6 @@
         "build": "npx blueprint build",
         "test": "jest sandbox_tests",
         "deploy": "npx blueprint run",
-
         "prettier": "npx prettier --write '{test,contracts,build}/**/*.{ts,js,json}'",
         "build_legacy": "ts-node ./build/_build.ts",
         "test_legacy": "mocha --exit test/**/*.spec.ts",
@@ -16,8 +15,8 @@
         "@swc/core": "^1.2.177",
         "@ton/blueprint": "^0.12.1",
         "@ton/core": "^0.51.0",
-        "@ton/sandbox": "^0.11.1",
-        "@ton/test-utils": "^0.3.1",
+        "@ton/sandbox": "^0.15.0",
+        "@ton/test-utils": "^0.4.2",
         "@types/bn.js": "^5.1.0",
         "@types/chai": "^4.3.0",
         "@types/jest": "^29.5.4",
