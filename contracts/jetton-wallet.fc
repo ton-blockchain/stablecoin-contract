@@ -25,7 +25,9 @@ This is suitable for most tokens, if you need tokens transferable between workch
   Storage
 
   Note, status==0 means unlocked - user can freely transfer jettons.
-  Any other status means locked - user can not transfer, but minter still can.
+        (status & 1) bit means user can not send/burn jettons
+        (status & 2) bit means user can not receive jettons.
+  Status does not affect ability minter smart-contract to govern jettons.
 
   storage#_ status:uint4
             balance:Coins owner_address:MsgAddressInt
@@ -62,7 +64,8 @@ This is suitable for most tokens, if you need tokens transferable between workch
   force_chain(to_owner_address);
   (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
   int is_from_master = equal_slices(jetton_master_address, sender_address);
-  throw_unless(error::contract_locked, (status == 0) | is_from_master);
+  int outcoming_transfers_locked = (status & 1);
+  throw_unless(error::contract_locked, (~ outcoming_transfers_locked) | is_from_master);
   balance -= jetton_amount;
 
   throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | is_from_master);
@@ -133,7 +136,8 @@ This is suitable for most tokens, if you need tokens transferable between workch
   ;; NOTE we can not allow fails in action phase since in that case there will be
   ;; no bounce. Thus check and throw in computation phase.
   (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
-  throw_if(error::contract_locked, status == 3);
+  int incoming_transfers_locked = (status & 2);
+  throw_if(error::contract_locked, incoming_transfers_locked);
   int query_id = in_msg_body~load_uint(64);
   int jetton_amount = in_msg_body~load_coins();
   balance += jetton_amount;
@@ -147,7 +151,6 @@ This is suitable for most tokens, if you need tokens transferable between workch
   int forward_ton_amount = in_msg_body~load_coins();
 
   int ton_balance_before_msg = my_ton_balance - msg_value;
-  raw_reserve(max(ton_balance_before_msg, get_min_tons_for_storage()), 2);
 
   if (forward_ton_amount) {
     slice either_forward_payload = in_msg_body;
@@ -172,6 +175,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
   }
 
   if ((response_address.preload_uint(2) != 0)) {
+    raw_reserve(max(ton_balance_before_msg, get_min_tons_for_storage()), 2);
     cell msg = begin_cell()
       .store_uint(0x10, 6) ;; nobounce
       .store_slice(response_address)
@@ -208,7 +212,8 @@ This is suitable for most tokens, if you need tokens transferable between workch
   balance -= jetton_amount;
   int is_from_master = equal_slices(jetton_master_address, sender_address);
   throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | is_from_master);
-  throw_unless(error::contract_locked, (status == 0) | is_from_master);
+  int outcoming_transfers_locked = (status & 1);
+  throw_unless(error::contract_locked, (~ outcoming_transfers_locked) | is_from_master);
   throw_unless(error::balance_error, balance >= 0);
 
   cell msg_body = begin_cell()
