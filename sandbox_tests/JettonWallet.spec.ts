@@ -1,5 +1,5 @@
 import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot } from '@ton/sandbox';
-import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender } from '@ton/core';
+import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender, Dictionary } from '@ton/core';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { JettonMinter, jettonMinterConfigToCell, LockType } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
@@ -24,7 +24,8 @@ let fwd_fee = 1804014n, gas_consumption = 15000000n, min_tons_for_storage = 1000
 //let fwd_fee = 1804014n, gas_consumption = 14000000n, min_tons_for_storage = 10000000n;
 
 describe('JettonWallet', () => {
-    let jwallet_code = new Cell();
+    let jwallet_code_raw = new Cell(); // true code
+    let jwallet_code = new Cell();     // library cell with reference to jwallet_code_raw
     let minter_code = new Cell();
     let blockchain: Blockchain;
     let deployer:SandboxContract<TreasuryContract>;
@@ -102,12 +103,20 @@ describe('JettonWallet', () => {
     }
 
     beforeAll(async () => {
-        jwallet_code   = await compile('JettonWallet');
+        jwallet_code_raw   = await compile('JettonWallet');
         minter_code    = await compile('JettonMinter');
         blockchain     = await Blockchain.create();
         deployer       = await blockchain.treasury('deployer');
         notDeployer    = await blockchain.treasury('notDeployer');
         defaultContent = beginCell().endCell();
+
+        //jwallet_code is library
+        const _libs = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Cell());
+        _libs.set(BigInt(`0x${jwallet_code_raw.hash().toString('hex')}`), jwallet_code_raw);
+        const libs = beginCell().storeDictDirect(_libs).endCell();
+        blockchain.libs = libs;
+        let lib_prep = beginCell().storeUint(2,8).storeBuffer(jwallet_code_raw.hash()).endCell();
+        jwallet_code = new Cell({ exotic:true, bits: lib_prep.bits, refs:lib_prep.refs});
 
         console.log('jetton minter code hash = ', minter_code.hash().toString('hex'));
         console.log('jetton wallet code hash = ', jwallet_code.hash().toString('hex'));
