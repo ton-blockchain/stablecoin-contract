@@ -64,8 +64,8 @@ This is suitable for most tokens, if you need tokens transferable between workch
   force_chain(to_owner_address);
   (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
   int is_from_master = equal_slices(jetton_master_address, sender_address);
-  int outcoming_transfers_locked = (status & 1) == 0;
-  throw_unless(error::contract_locked, outcoming_transfers_locked | is_from_master);
+  int outgoing_transfers_locked = (status & 1) == 0;
+  throw_unless(error::contract_locked, outgoing_transfers_locked | is_from_master);
   balance -= jetton_amount;
 
   throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | is_from_master);
@@ -212,8 +212,8 @@ This is suitable for most tokens, if you need tokens transferable between workch
   balance -= jetton_amount;
   int is_from_master = equal_slices(jetton_master_address, sender_address);
   throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | is_from_master);
-  int outcoming_transfers_locked = (status & 1) == 0;
-  throw_unless(error::contract_locked, outcoming_transfers_locked | is_from_master);
+  int outgoing_transfers_locked = (status & 1) == 0;
+  throw_unless(error::contract_locked, outgoing_transfers_locked | is_from_master);
   throw_unless(error::balance_error, balance >= 0);
 
   cell msg_body = begin_cell()

@@ -5,8 +5,8 @@ const int CONFIG::basechain_fwd_prices = 25;
 ;;const mint_gas_consumption = 8290; ;; todo
 const provide_address_gas_consumption = 309; ;; todo
 
-const jetton_walllet_bits  = 8236; ;; todo
-const jetton_walllet_cells = 31; ;; todo
+const jetton_wallet_bits  = 8236; ;; todo
+const jetton_wallet_cells = 31; ;; todo
 ;;const jetton_wallet_storage_fees = 57108956;
 
 
@@ -57,5 +57,5 @@ int get_min_tons_for_storage() {
 
     int duration = 5 * 365 * 24 * 3600; ;; todo 5 years
 
-    return (jetton_walllet_bits * bit_price_ps + jetton_walllet_cells * cell_price_ps) * duration ^/ 65536;
+    return (jetton_wallet_bits * bit_price_ps + jetton_wallet_cells * cell_price_ps) * duration ^/ 65536;
 }
