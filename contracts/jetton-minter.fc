@@ -94,7 +94,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
     (int total_supply, slice admin_address, slice next_admin_address, cell jetton_wallet_code) = load_data();
 
     if (op == op::mint) {
-        throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
+        throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
         slice to_address = in_msg_body~load_msg_addr();
         force_chain(to_address);
         int amount = in_msg_body~load_coins();
@@ -120,7 +120,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
         int jetton_amount = in_msg_body~load_coins();
         slice from_address = in_msg_body~load_msg_addr();
         throw_unless(error::not_valid_wallet,
-            equal_slices(calculate_user_jetton_wallet_address(from_address, my_address(), jetton_wallet_code), sender_address)
+            equal_slices_bits(calculate_user_jetton_wallet_address(from_address, my_address(), jetton_wallet_code), sender_address)
         );
         save_data(total_supply - jetton_amount, admin_address, next_admin_address, jetton_wallet_code);
         slice response_address = in_msg_body~load_msg_addr();
@@ -168,20 +168,20 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
     }
 
     if (op == op::change_admin) {
-        throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
+        throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
         slice next_admin_address = in_msg_body~load_msg_addr();
         save_data(total_supply, admin_address, next_admin_address, jetton_wallet_code);
         return ();
     }
 
     if (op == op::claim_admin) {
-        throw_unless(error::not_owner, equal_slices(sender_address, next_admin_address));
+        throw_unless(error::not_owner, equal_slices_bits(sender_address, next_admin_address));
         save_data(total_supply, next_admin_address, addr_none(), jetton_wallet_code);
         return ();
     }
 
     if (op == op::call_to) {  ;; can be used to lock, unlock or reedem funds
-        throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
+        throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
         slice to_address = in_msg_body~load_msg_addr();
         int amount = in_msg_body~load_coins();
         cell master_msg = in_msg_body~load_ref();
@@ -215,7 +215,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
     }
 
     if (op == op::upgrade) {
-        throw_unless(error::not_owner, equal_slices(sender_address, admin_address));
+        throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
         (cell new_data, cell new_code) = (in_msg_body~load_ref(), in_msg_body~load_ref());
         set_data(new_data);
         set_code(new_code);

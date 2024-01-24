@@ -63,12 +63,12 @@ This is suitable for most tokens, if you need tokens transferable between workch
   slice to_owner_address = in_msg_body~load_msg_addr();
   force_chain(to_owner_address);
   (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
-  int is_from_master = equal_slices(jetton_master_address, sender_address);
+  int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
   int outgoing_transfers_unlocked = ( (status & 1) == 0 );
   throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
   balance -= jetton_amount;
 
-  throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | is_from_master);
+  throw_unless(error::not_owner, equal_slices_bits(owner_address, sender_address) | is_from_master);
   throw_unless(error::balance_error, balance >= 0);
 
   cell state_init = calculate_jetton_wallet_state_init(to_owner_address, jetton_master_address, my_code());
@@ -144,9 +144,9 @@ This is suitable for most tokens, if you need tokens transferable between workch
   slice from_address = in_msg_body~load_msg_addr();
   slice response_address = in_msg_body~load_msg_addr();
   throw_unless(error::not_valid_wallet,
-      equal_slices(jetton_master_address, sender_address)
+      equal_slices_bits(jetton_master_address, sender_address)
       |
-      equal_slices(calculate_user_jetton_wallet_address(from_address, jetton_master_address, my_code()), sender_address)
+      equal_slices_bits(calculate_user_jetton_wallet_address(from_address, jetton_master_address, my_code()), sender_address)
   );
   int forward_ton_amount = in_msg_body~load_coins();
 
@@ -210,8 +210,8 @@ This is suitable for most tokens, if you need tokens transferable between workch
   ;; ignore custom payload
   ;; slice custom_payload = in_msg_body~load_dict();
   balance -= jetton_amount;
-  int is_from_master = equal_slices(jetton_master_address, sender_address);
-  throw_unless(error::not_owner, equal_slices(owner_address, sender_address) | is_from_master);
+  int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
+  throw_unless(error::not_owner, equal_slices_bits(owner_address, sender_address) | is_from_master);
   int outgoing_transfers_unlocked = ( (status & 1) == 0 );
   throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
   throw_unless(error::balance_error, balance >= 0);
@@ -286,7 +286,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
     in_msg_body~skip_bits(64); ;; query_id
     int new_status = in_msg_body~load_uint(4);
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
-    throw_unless(error::not_valid_wallet, equal_slices(sender_address, jetton_master_address));
+    throw_unless(error::not_valid_wallet, equal_slices_bits(sender_address, jetton_master_address));
     save_data(new_status, balance, owner_address, jetton_master_address);
     return ();
   }

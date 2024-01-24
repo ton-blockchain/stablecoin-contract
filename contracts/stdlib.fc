@@ -261,7 +261,7 @@ cont bless(slice s) impure asm "BLESS";
 ;;; Not implemented
 ;;; Computes the amount of gas that can be bought for `amount` nanoTONs,
 ;;; and sets `gl` accordingly in the same way as [set_gas_limit].
-;;() buy_gas(int gram) impure asm "BUYGAS";
+;;() buy_gas(int amount) impure asm "BUYGAS";
 
 ;;; Computes the minimum of two integers [x] and [y].
 int min(int x, int y) asm "MIN";
@@ -624,15 +624,20 @@ int rand(int range) impure asm "RAND";
 ;;; Returns the current random seed as an unsigned 256-bit Integer.
 int get_seed() impure asm "RANDSEED";
 ;;; Sets the random seed to unsigned 256-bit seed.
-int set_seed() impure asm "SETRAND";
+() set_seed(int x) impure asm "SETRAND";
 ;;; Mixes unsigned 256-bit integer x into the random seed r by setting the random seed to sha256 of the concatenation of two 32-byte strings: the first with the big-endian representation of the old seed r, and the second with the big-endian representation of x.
 () randomize(int x) impure asm "ADDRAND";
 ;;; Equivalent to randomize(cur_lt());.
 () randomize_lt() impure asm "LTIME" "ADDRAND";
 
-int equal_slices (slice a, slice b) asm "SDEQ";
+;;; Checks whether the data parts of two slices coinside
+int equal_slices_bits(slice a, slice b) asm "SDEQ";
+;;; Checks whether b is a null. Note, that FunC also has polymorphic null? built-in.
 int builder_null?(builder b) asm "ISNULL";
+;;; Concatenates two builders
 builder store_builder(builder to, builder from) asm "STBR";
+
+;; CUSTOM:
 
 cell my_code() asm "MYCODE";
 int send_message(cell msg, int mode) impure asm "SENDMSG";
