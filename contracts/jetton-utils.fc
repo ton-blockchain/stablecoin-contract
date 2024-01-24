@@ -33,7 +33,7 @@ slice calculate_jetton_wallet_address(cell state_init) inline {
       = MsgAddressInt;
   -}
   return begin_cell().store_uint(4, 3)      ;; 0b100 = addr_std$10 tag; No anycast
-                     .store_int(workchain, 8)
+                     .store_int(WORKCHAIN, 8)
                      .store_uint(cell_hash(state_init), 256)
                      .end_cell()
                      .begin_parse();

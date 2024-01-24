@@ -49,7 +49,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
   cell state_init = calculate_jetton_wallet_state_init(to_address, my_address(), jetton_wallet_code);
   slice to_wallet_address = calculate_jetton_wallet_address(state_init);
   var msg = begin_cell()
-    .store_uint(0x18, 6)            ;; 0b011000 tag - 0, ihr_disabled - 1, bounce - 1, bounced - 0, src = adr_none$00
+    .store_uint(BOUNCEABLE, 6)
     .store_slice(to_wallet_address)
     .store_coins(amount)
     ;; 1 + 4 + 4 + 64 + 32 zeroes - zeroed extracurrency, ihr_fee, fwd_fee, created_lt and created_at
@@ -64,14 +64,11 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
 
     msg = msg.store_ref(master_msg);
 
-  send_raw_message(msg.end_cell(), PAY_FEES_SEPARATELY | BOUNCE_ON_ACTION_FAIL);
+  send_raw_message(msg.end_cell(), SEND_MODE_PAY_FEES_SEPARATELY | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
-    if (in_msg_body.slice_empty?()) { ;; ignore empty messages
-        return ();
-    }
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
 
@@ -126,13 +123,13 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
         slice response_address = in_msg_body~load_msg_addr();
         if (response_address.preload_uint(2) != 0) {
             var msg = begin_cell()
-            .store_uint(0x10, 6) ;; nobounce
+            .store_uint(NON_BOUNCEABLE, 6)
             .store_slice(response_address)
             .store_coins(0)
             .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
             .store_uint(op::excesses, 32)
             .store_uint(query_id, 64);
-            send_raw_message(msg.end_cell(), IGNORE_ERRORS | CARRY_REMAINING_GAS);
+            send_raw_message(msg.end_cell(), SEND_MODE_IGNORE_ERRORS | SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
         }
         return ();
     }
@@ -146,7 +143,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
                 : null();
 
         var msg = begin_cell()
-                .store_uint(0x18, 6)
+                .store_uint(BOUNCEABLE, 6)
                 .store_slice(sender_address)
                 .store_coins(0)
                 .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
@@ -163,7 +160,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
 ;;        int fwd_fee = send_message(msg_cell, CALCULATE_FEE);
 ;;        throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(provide_address_gas_consumption));
 
-        send_raw_message(msg_cell, CARRY_REMAINING_GAS);
+        send_raw_message(msg_cell, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
         return ();
     }
 

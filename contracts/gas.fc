@@ -9,15 +9,11 @@ const jetton_wallet_bits  = 953; ;; todo
 const jetton_wallet_cells = 3; ;; todo
 ;;const jetton_wallet_storage_fees = 57108956;
 
-
 const send_transfer_gas_consumption    = 15364;
 const receive_transfer_gas_consumption = 13064;
 
 const send_burn_gas_consumption    = 9728; ;; todo
 const receive_burn_gas_consumption = 6542; ;; todo
-
-
-
 
 ( int, int, int, int, int, int) get_fee_constants() {
     slice gas_config = config_param(CONFIG::basechain_gas_prices).begin_parse();

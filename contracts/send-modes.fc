@@ -1,6 +1,12 @@
-const PAY_FEES_SEPARATELY = 1;
-const IGNORE_ERRORS = 2;
-const BOUNCE_ON_ACTION_FAIL = 16;
-const CARRY_REMAINING_GAS = 64;
-const CARRY_REMAINING_BALANCE = 128;
-const ESTIMATE_FEE_ONLY = 1024;
+const int BOUNCEABLE = 0x18; ;; 0b011000 tag - 0, ihr_disabled - 1, bounce - 1, bounced - 0, src = adr_none$00
+const int NON_BOUNCEABLE = 0x10;
+
+const int SEND_MODE_REGULAR = 0;
+const int SEND_MODE_PAY_FEES_SEPARATELY = 1;
+const int SEND_MODE_IGNORE_ERRORS = 2;
+const int SEND_MODE_DESTROY = 32;
+const int SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE = 64;
+const int SEND_MODE_CARRY_ALL_BALANCE = 128;
+
+const int SEND_MODE_BOUNCE_ON_ACTION_FAIL = 16;
+const int SEND_MODE_ESTIMATE_FEE_ONLY = 1024;
