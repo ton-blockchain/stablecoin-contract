@@ -72,7 +72,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
 
-    if (flags & 1) { ;; process only mint bounces
+    if (is_bounced(flags)) { ;; process only mint bounces
         in_msg_body~skip_bits(32);
         ifnot(in_msg_body~load_uint(32) == op::internal_transfer) {
           return ();

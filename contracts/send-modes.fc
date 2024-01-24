@@ -1,5 +1,9 @@
 const int BOUNCEABLE = 0x18; ;; 0b011000 tag - 0, ihr_disabled - 1, bounce - 1, bounced - 0, src = adr_none$00
-const int NON_BOUNCEABLE = 0x10;
+const int NON_BOUNCEABLE = 0x10; ;; 0b010000 tag - 0, ihr_disabled - 1, bounce - 0, bounced - 0, src = adr_none$00
+
+int is_bounced(int msg_flags) inline {
+    return msg_flags & 1;
+}
 
 const int SEND_MODE_REGULAR = 0;
 const int SEND_MODE_PAY_FEES_SEPARATELY = 1;

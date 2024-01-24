@@ -253,7 +253,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
   slice cs = in_msg_full.begin_parse();
   int flags = cs~load_uint(4);
-  if (flags & 1) {
+  if (is_bounced(flags)) {
     on_bounce(in_msg_body);
     return ();
   }
