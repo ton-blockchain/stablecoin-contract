@@ -3,45 +3,48 @@
 const int STATUS_SIZE = 4;
 
 cell pack_jetton_wallet_data(int status, int balance, slice owner_address, slice jetton_master_address) inline {
-   return  begin_cell()
-            .store_uint(status, STATUS_SIZE)
-            .store_coins(balance)
-            .store_slice(owner_address)
-            .store_slice(jetton_master_address)
-           .end_cell();
+    return begin_cell()
+    .store_uint(status, STATUS_SIZE)
+    .store_coins(balance)
+    .store_slice(owner_address)
+    .store_slice(jetton_master_address)
+    .end_cell();
 }
 
 cell calculate_jetton_wallet_state_init(slice owner_address, slice jetton_master_address, cell jetton_wallet_code) inline {
-  {-
+    {-
       _ split_depth:(Maybe (## 5)) special:(Maybe TickTock)
       code:(Maybe ^Cell) data:(Maybe ^Cell)
       library:(HashmapE 256 SimpleLib) = StateInit;
   -}
-  return begin_cell()
-          .store_uint(0, 1 + 1)            ;; No split depth; No TickTock
-          .store_dict(jetton_wallet_code)  ;; Code
-          .store_dict(                     ;; Data
-                        pack_jetton_wallet_data(0, 0,  ;; Initial state: status 0, balance 0
-                                                owner_address,
-                                                jetton_master_address)
-                     )
-          .store_uint(0, 1)                ;; Empty libraries
-         .end_cell();
+    return begin_cell()
+    .store_uint(0, 1 + 1)            ;; No split depth; No TickTock
+    .store_dict(jetton_wallet_code)  ;; Code
+    .store_dict(;; Data
+        pack_jetton_wallet_data(
+            0, ;; status
+            0, ;; balance
+            owner_address,
+            jetton_master_address)
+    )
+    .store_uint(0, 1)                ;; Empty libraries
+    .end_cell();
 }
 
 slice calculate_jetton_wallet_address(cell state_init) inline {
-  {-
+    {-
       addr_std$10 anycast:(Maybe Anycast) workchain_id:int8 address:bits256
       = MsgAddressInt;
   -}
-  return begin_cell().store_uint(4, 3)      ;; 0b100 = addr_std$10 tag; No anycast
-                     .store_int(MY_WORKCHAIN, 8)
-                     .store_uint(cell_hash(state_init), 256)
-                     .end_cell()
-                     .begin_parse();
+    return begin_cell()
+    .store_uint(4, 3)      ;; 0b100 = addr_std$10 tag; No anycast
+    .store_int(MY_WORKCHAIN, 8)
+    .store_uint(cell_hash(state_init), 256)
+    .end_cell()
+    .begin_parse();
 }
 
 slice calculate_user_jetton_wallet_address(slice owner_address, slice jetton_master_address, cell jetton_wallet_code) inline {
-  return calculate_jetton_wallet_address(calculate_jetton_wallet_state_init(owner_address, jetton_master_address, jetton_wallet_code));
+    return calculate_jetton_wallet_address(calculate_jetton_wallet_state_init(owner_address, jetton_master_address, jetton_wallet_code));
 }
 

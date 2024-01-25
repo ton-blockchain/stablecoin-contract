@@ -9,5 +9,5 @@ int is_same_workchain(slice addr) inline {
 }
 
 () check_same_workchain(slice addr) impure {
-  throw_unless(error::wrong_workchain, is_same_workchain(addr));
+    throw_unless(error::wrong_workchain, is_same_workchain(addr));
 }

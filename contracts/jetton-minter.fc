@@ -11,24 +11,24 @@
 ;; storage scheme
 ;; storage#_ total_supply:Coins admin_address:MsgAddress next_admin_address:MsgAddress jetton_wallet_code:^Cell = Storage;
 (int, slice, slice, cell) load_data() inline {
-  slice ds = get_data().begin_parse();
-  var data = (
-                ds~load_coins(), ;; total_supply
-                ds~load_msg_addr(), ;; admin_address
-                ds~load_msg_addr(), ;; next_admin_address
-                ds~load_ref()  ;; jetton_wallet_code
-              );
-  ds.end_parse();
-  return data;
+    slice ds = get_data().begin_parse();
+    var data = (
+        ds~load_coins(), ;; total_supply
+        ds~load_msg_addr(), ;; admin_address
+        ds~load_msg_addr(), ;; next_admin_address
+        ds~load_ref()  ;; jetton_wallet_code
+    );
+    ds.end_parse();
+    return data;
 }
 
 () save_data(int total_supply, slice admin_address, slice next_admin_address, cell jetton_wallet_code) impure inline {
-  set_data(begin_cell()
-            .store_coins(total_supply)
-            .store_slice(admin_address)
-            .store_slice(next_admin_address)
-            .store_ref(jetton_wallet_code)
-           .end_cell()
+    set_data(begin_cell()
+    .store_coins(total_supply)
+    .store_slice(admin_address)
+    .store_slice(next_admin_address)
+    .store_ref(jetton_wallet_code)
+    .end_cell()
     );
 }
 
@@ -43,30 +43,31 @@
 -}
 
 () send_to_jetton_wallet(slice to_address, cell jetton_wallet_code, int amount, cell master_msg, int need_state_init) impure {
-  cell state_init = calculate_jetton_wallet_state_init(to_address, my_address(), jetton_wallet_code);
-  slice to_wallet_address = calculate_jetton_wallet_address(state_init);
-  var msg = begin_cell()
+    cell state_init = calculate_jetton_wallet_state_init(to_address, my_address(), jetton_wallet_code);
+    slice to_wallet_address = calculate_jetton_wallet_address(state_init);
+    var msg = begin_cell()
     .store_msg_flags_and_address_none(BOUNCEABLE)
     .store_slice(to_wallet_address)
     .store_coins(amount);
 
-  if (need_state_init) {
+    if (need_state_init) {
         msg = msg.store_statinit_ref_and_body_ref(state_init, master_msg);
-  } else {
+    } else {
         msg = msg.store_only_body_ref(master_msg);
-  }
+    }
 
-  send_raw_message(msg.end_cell(), SEND_MODE_PAY_FEES_SEPARATELY | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
+    send_raw_message(msg.end_cell(), SEND_MODE_PAY_FEES_SEPARATELY | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
     slice in_msg_full_slice = in_msg_full.begin_parse();
     int msg_flags = in_msg_full_slice~load_msg_flags();
 
-    if (is_bounced(msg_flags)) { ;; process only mint bounces
+    if (is_bounced(msg_flags)) {
         in_msg_body~skip_bounced_prefix();
-        ifnot(in_msg_body~load_op() == op::internal_transfer) {
-          return ();
+        ;; process only mint bounces
+        ifnot (in_msg_body~load_op() == op::internal_transfer) {
+            return ();
         }
         in_msg_body~skip_query_id();
         int jetton_amount = in_msg_body~load_coins();
@@ -127,16 +128,16 @@
         int include_address? = in_msg_body~load_bool();
 
         cell included_address = include_address?
-                ? begin_cell().store_slice(owner_address).end_cell()
-                : null();
+        ? begin_cell().store_slice(owner_address).end_cell()
+        : null();
 
         var msg = begin_cell()
-                .store_msg_flags_and_address_none(BOUNCEABLE)
-                .store_slice(sender_address)
-                .store_coins(0)
-                .store_prefix_only_body()
-                .store_op(op::take_wallet_address)
-                .store_query_id(query_id);
+        .store_msg_flags_and_address_none(BOUNCEABLE)
+        .store_slice(sender_address)
+        .store_coins(0)
+        .store_prefix_only_body()
+        .store_op(op::take_wallet_address)
+        .store_query_id(query_id);
 
         if (is_same_workchain(owner_address)) {
             msg = msg.store_slice(calculate_user_jetton_wallet_address(owner_address, my_address(), jetton_wallet_code));
@@ -145,8 +146,8 @@
         }
 
         cell msg_cell = msg.store_maybe_ref(included_address).end_cell();
-;;        int fwd_fee = send_message(msg_cell, CALCULATE_FEE);
-;;        throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(PROVIDE_ADDRESS_GAS_CONSUMPTION));
+        ;;        int fwd_fee = send_message(msg_cell, CALCULATE_FEE);
+        ;;        throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(PROVIDE_ADDRESS_GAS_CONSUMPTION));
 
         send_raw_message(msg_cell, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
         return ();
@@ -165,7 +166,8 @@
         return ();
     }
 
-    if (op == op::call_to) {  ;; can be used to lock, unlock or reedem funds
+    ;; can be used to lock, unlock or reedem funds
+    if (op == op::call_to) {
         throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
         slice to_address = in_msg_body~load_msg_addr();
         int amount = in_msg_body~load_coins();
@@ -174,24 +176,24 @@
         int master_op = master_msg_cs~load_op();
         master_msg_cs~skip_query_id();
         ;; parse-validate messages
-        if(master_op == op::transfer) {
-          master_msg_cs~load_coins();
-          master_msg_cs~load_msg_addr();
-          master_msg_cs~load_msg_addr();
-          master_msg_cs~load_maybe_ref();
-          master_msg_cs~load_coins();
-          master_msg_cs~load_maybe_ref();
-          master_msg_cs.end_parse();
+        if (master_op == op::transfer) {
+            master_msg_cs~load_coins();
+            master_msg_cs~load_msg_addr();
+            master_msg_cs~load_msg_addr();
+            master_msg_cs~load_maybe_ref();
+            master_msg_cs~load_coins();
+            master_msg_cs~load_maybe_ref();
+            master_msg_cs.end_parse();
         } elseif (master_op == op::burn) {
-          master_msg_cs~load_coins();
-          master_msg_cs~load_msg_addr();
-          master_msg_cs~load_maybe_ref();
-          master_msg_cs.end_parse();
+            master_msg_cs~load_coins();
+            master_msg_cs~load_msg_addr();
+            master_msg_cs~load_maybe_ref();
+            master_msg_cs.end_parse();
         } elseif (master_op == op::set_status) {
-          master_msg_cs~load_uint(STATUS_SIZE);
-          master_msg_cs.end_parse();
+            master_msg_cs~load_uint(STATUS_SIZE);
+            master_msg_cs.end_parse();
         } else {
-          throw(error::invalid_op);
+            throw(error::invalid_op);
         }
         send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, FALSE);
         return ();
