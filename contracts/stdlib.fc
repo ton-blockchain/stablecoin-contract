@@ -647,6 +647,9 @@ const int FALSE = 0;
 const int MASTERCHAIN = -1;
 const int BASECHAIN = 0;
 
+(slice, (int)) ~load_bool(slice s) inline { return s.load_int(1); }
+builder store_bool(builder b, int value) inline { return b.store_int(value, 1); }
+
 ;; NEW_TVM
 
 cell my_code() asm "MYCODE";
@@ -678,6 +681,11 @@ int is_bounced(int msg_flags) inline {
 
 ;; msg_flags and address none
 builder store_msg_flags_and_address_none(builder b, int msg_flag) inline { return b.store_uint(msg_flag, 6); }
+
+;; RESERVE MODES
+
+;; Bit +2 in y means that the external action does not fail if the specified amount cannot be reserved; instead, all remaining balance is reserved
+const int RESERVE_AT_MOST = 2;
 
 ;; SEND MODES
 

@@ -60,10 +60,10 @@
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
-    slice cs = in_msg_full.begin_parse();
-    int flags = cs~load_msg_flags();
+    slice in_msg_full_slice = in_msg_full.begin_parse();
+    int msg_flags = in_msg_full_slice~load_msg_flags();
 
-    if (is_bounced(flags)) { ;; process only mint bounces
+    if (is_bounced(msg_flags)) { ;; process only mint bounces
         in_msg_body~skip_bounced_prefix();
         ifnot(in_msg_body~load_op() == op::internal_transfer) {
           return ();
@@ -74,7 +74,7 @@
         save_data(total_supply - jetton_amount, admin_address, next_admin_address, jetton_wallet_code);
         return ();
     }
-    slice sender_address = cs~load_msg_addr();
+    slice sender_address = in_msg_full_slice~load_msg_addr();
 
     (int op, int query_id) = in_msg_body~load_op_and_query_id();
 
@@ -124,7 +124,7 @@
 
     if (op == op::provide_wallet_address) {
         slice owner_address = in_msg_body~load_msg_addr();
-        int include_address? = in_msg_body~load_uint(1);
+        int include_address? = in_msg_body~load_bool();
 
         cell included_address = include_address?
                 ? begin_cell().store_slice(owner_address).end_cell()

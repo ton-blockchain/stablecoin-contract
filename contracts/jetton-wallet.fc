@@ -6,7 +6,7 @@ NOTE that this tokens can be transferred within the same workchain.
 
 This is suitable for most tokens, if you need tokens transferable between workchains there are two solutions:
 
-1) use more expensive but universal function to calculate message forward fee for arbitrary destination (see `misc/forward-fee-calc.cs`)
+1) use more expensive but universal function to calculate message forward fee for arbitrary destination (see `misc/forward-fee-calc.fc`)
 
 2) use token holder proxies in target workchain (that way even 'non-universal' token can be used from any workchain)
 
@@ -171,7 +171,8 @@ This is suitable for most tokens, if you need tokens transferable between workch
   }
 
   if (~ is_address_none(response_address)) {
-    raw_reserve(max(ton_balance_before_msg, get_min_tons_for_storage()), 2);
+    raw_reserve(max(ton_balance_before_msg, get_min_tons_for_storage()), RESERVE_AT_MOST);
+
     cell msg = begin_cell()
       .store_msg_flags_and_address_none(NON_BOUNCEABLE)
       .store_slice(response_address)
@@ -197,8 +198,6 @@ This is suitable for most tokens, if you need tokens transferable between workch
 -}
 
 () burn_jettons (slice in_msg_body, slice sender_address, int msg_value) impure {
-  ;; NOTE we can not allow fails in action phase since in that case there will be
-  ;; no bounce. Thus check and throw in computation phase.
   (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
   int query_id = in_msg_body~load_query_id();
   int jetton_amount = in_msg_body~load_coins();
@@ -229,6 +228,8 @@ This is suitable for most tokens, if you need tokens transferable between workch
 
   int fwd_fee = send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
 
+  ;; NOTE we can not allow fails in action phase since in that case there will be
+  ;; no bounce. Thus check and throw in computation phase.
   throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(SEND_BURN_GAS_CONSUMPTION , RECEIVE_BURN_GAS_CONSUMPTION));
 
   save_data(status, balance, owner_address, jetton_master_address);
@@ -245,14 +246,14 @@ This is suitable for most tokens, if you need tokens transferable between workch
   save_data(status, balance, owner_address, jetton_master_address);
 }
 
-() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
-  slice cs = in_msg_full.begin_parse();
-  int flags = cs~load_msg_flags();
-  if (is_bounced(flags)) {
+() recv_internal(int my_ton_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+  slice in_msg_full_slice = in_msg_full.begin_parse();
+  int msg_flags = in_msg_full_slice~load_msg_flags();
+  if (is_bounced(msg_flags)) {
     on_bounce(in_msg_body);
     return ();
   }
-  slice sender_address = cs~load_msg_addr();
+  slice sender_address = in_msg_full_slice~load_msg_addr();
 
   int op = in_msg_body~load_op();
 
@@ -264,7 +265,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
   ;; todo: multiple transfer
 
   if (op == op::internal_transfer) { ;; incoming transfer
-    receive_jettons(in_msg_body, sender_address, my_balance, msg_value);
+    receive_jettons(in_msg_body, sender_address, my_ton_balance, msg_value);
     return ();
   }
 
@@ -276,7 +277,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
   if (op == op::set_status) {
     in_msg_body~skip_query_id();
     int new_status = in_msg_body~load_uint(STATUS_SIZE);
-    (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
+    (_, int balance, slice owner_address, slice jetton_master_address) = load_data();
     throw_unless(error::not_valid_wallet, equal_slices_bits(sender_address, jetton_master_address));
     save_data(new_status, balance, owner_address, jetton_master_address);
     return ();
