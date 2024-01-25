@@ -16,8 +16,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
 
 #include "stdlib.fc";
 #include "op-codes.fc";
-#include "send-modes.fc";
-#include "params.fc";
+#include "workchain.fc";
 #include "jetton-utils.fc";
 #include "gas.fc";
 
@@ -36,7 +35,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
 
 (int, int, slice, slice) load_data() inline {
   slice ds = get_data().begin_parse();
-  var data = (ds~load_uint(4), ds~load_coins(), ds~load_msg_addr(), ds~load_msg_addr());
+  var data = (ds~load_uint(STATUS_SIZE), ds~load_coins(), ds~load_msg_addr(), ds~load_msg_addr());
   ds.end_parse();
   return data;
 }

@@ -639,11 +639,17 @@ builder store_builder(builder to, builder from) asm "STBR";
 
 ;; CUSTOM:
 
+;; BASIC
+
 const int TRUE = -1;
 const int FALSE = 0;
 
+;; NEW_TVM
+
 cell my_code() asm "MYCODE";
 int send_message(cell msg, int mode) impure asm "SENDMSG";
+
+;; ADDRESS NONE
 
 builder store_address_none(builder b) inline {
     return b.store_uint(0, 2);
@@ -654,3 +660,24 @@ slice address_none() asm "<b 0 2 u, b> <s PUSHSLICE";
 int is_address_none(slice s) inline {
     return s.preload_uint(2) == 0;
 }
+
+;; MSG FLAGS
+
+const int BOUNCEABLE = 0x18; ;; 0b011000 tag - 0, ihr_disabled - 1, bounce - 1, bounced - 0, src = adr_none$00
+const int NON_BOUNCEABLE = 0x10; ;; 0b010000 tag - 0, ihr_disabled - 1, bounce - 0, bounced - 0, src = adr_none$00
+
+int is_bounced(int msg_flags) inline {
+    return msg_flags & 1;
+}
+
+;; SEND MODES
+
+const int SEND_MODE_REGULAR = 0;
+const int SEND_MODE_PAY_FEES_SEPARATELY = 1;
+const int SEND_MODE_IGNORE_ERRORS = 2;
+const int SEND_MODE_DESTROY = 32;
+const int SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE = 64;
+const int SEND_MODE_CARRY_ALL_BALANCE = 128;
+
+const int SEND_MODE_BOUNCE_ON_ACTION_FAIL = 16;
+const int SEND_MODE_ESTIMATE_FEE_ONLY = 1024;

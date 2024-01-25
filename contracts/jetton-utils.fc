@@ -1,8 +1,10 @@
-#include "params.fc";
+#include "workchain.fc";
+
+const int STATUS_SIZE = 4;
 
 cell pack_jetton_wallet_data(int status, int balance, slice owner_address, slice jetton_master_address) inline {
    return  begin_cell()
-            .store_uint(status, 4)
+            .store_uint(status, STATUS_SIZE)
             .store_coins(balance)
             .store_slice(owner_address)
             .store_slice(jetton_master_address)

@@ -4,8 +4,7 @@
 
 #include "stdlib.fc";
 #include "op-codes.fc";
-#include "params.fc";
-#include "send-modes.fc";
+#include "workchain.fc";
 #include "jetton-utils.fc";
 #include "gas.fc";
 
@@ -200,7 +199,7 @@
           master_msg_cs~load_maybe_ref();
           master_msg_cs.end_parse();
         } elseif (master_op == op::set_status) {
-          master_msg_cs~load_uint(4);
+          master_msg_cs~load_uint(STATUS_SIZE);
           master_msg_cs.end_parse();
         } else {
           throw(error::invalid_op);
