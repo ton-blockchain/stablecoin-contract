@@ -282,6 +282,10 @@ This is suitable for most tokens, if you need tokens transferable between workch
     return ();
   }
 
+  if (op == op::top_up) {
+    return (); ;; just accept tons
+  }
+
   throw(error::wrong_op);
 }
 

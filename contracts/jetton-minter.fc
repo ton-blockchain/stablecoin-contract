@@ -205,6 +205,10 @@
         return ();
     }
 
+    if (op == op::top_up) {
+        return (); ;; just accept tons
+    }
+
     throw(error::wrong_op);
 }
 
