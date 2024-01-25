@@ -1,5 +1,5 @@
 import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot } from '@ton/sandbox';
-import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender, Dictionary } from '@ton/core';
+import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender, Dictionary, storeMessage } from '@ton/core';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { JettonMinter, jettonMinterConfigToCell, LockType } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
@@ -7,6 +7,7 @@ import {findTransactionRequired} from '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { randomAddress, getRandomTon, differentAddress, getRandomInt, testJettonTransfer, testJettonInternalTransfer, testJettonNotification, testJettonBurnNotification } from './utils';
 import { Op, Errors } from '../wrappers/JettonConstants';
+import { calcStorageFee, collectCellStats, computeCellForwardFees, computeFwdFees, computeGasFee, computeMessageForwardFees, GasPrices, getGasPrices, getMsgPrices, getStoragePrices, MsgPrices, setGasPrice, setMsgPrices, setStoragePrices, StorageStats } from '../gasUtils';
 
 /*
    These tests check compliance with the TEP-74 and TEP-89,
@@ -37,70 +38,13 @@ describe('JettonWallet', () => {
 
     let storageGeneric : (trans:Transaction) => TransactionStoragePhase;
     let printTxGasStats: (name: string, trans: Transaction) => bigint;
+    let calcSendFees: (send_fee: bigint,
+                       recv_fee: bigint,
+                       fwd_fee: bigint,
+                       fwd_amount: bigint,
+                       storage_fee: bigint) => bigint;
+    let testSendFees: (fees: bigint, fwd: boolean, exp: boolean) => Promise<void>;
 
-    class StorageStats {
-        bits: bigint;
-        cells: bigint;
-
-        constructor(bits?: number | bigint, cells?: number | bigint) {
-            this.bits  = bits  !== undefined ? BigInt(bits)  : 0n;
-            this.cells = cells !== undefined ? BigInt(cells) : 0n;
-        }
-        add(...stats: StorageStats[]) {
-            let cells = this.cells, bits = this.bits;
-            for (let stat of stats) {
-                bits  += stat.bits;
-                cells += stat.cells;
-            }
-            return new StorageStats(bits, cells);
-        }
-        sub(...stats: StorageStats[]) {
-            let cells = this.cells, bits = this.bits;
-            for (let stat of stats) {
-                bits  -= stat.bits;
-                cells -= stat.cells;
-            }
-            return new StorageStats(bits, cells);
-        }
-        addBits(bits: number | bigint) {
-            return new StorageStats(this.bits + BigInt(bits), this.cells);
-        }
-        subBits(bits: number | bigint) {
-            return new StorageStats(this.bits - BigInt(bits), this.cells);
-        }
-        addCells(cells: number | bigint) {
-            return new StorageStats(this.bits, this.cells + BigInt(cells));
-        }
-        subCells(cells: number | bigint) {
-            return new StorageStats(this.bits, this.cells - BigInt(cells));
-        }
-
-        toString() : string {
-            return JSON.stringify({
-                bits: this.bits.toString(),
-                cells: this.cells.toString()
-            });
-        }
-    }
-
-    function collectCellStats(cell: Cell, visited:Array<string>, skipRoot: boolean = false): StorageStats {
-        let bits  = skipRoot ? 0n : BigInt(cell.bits.length);
-        let cells = skipRoot ? 0n : 1n;
-        let hash = cell.hash().toString();
-        if (visited.includes(hash)) {
-            // We should not account for current cell data if visited
-            return new StorageStats();
-        }
-        else {
-            visited.push(hash);
-        }
-        for (let ref of cell.refs) {
-            let r = collectCellStats(ref, visited);
-            cells += r.cells;
-            bits += r.bits;
-        }
-        return new StorageStats(bits, cells);
-    }
 
     beforeAll(async () => {
         jwallet_code_raw   = await compile('JettonWallet');
