@@ -48,18 +48,13 @@
   var msg = begin_cell()
     .store_msg_flags_and_address_none(BOUNCEABLE)
     .store_slice(to_wallet_address)
-    .store_coins(amount)
-    ;; 1 + 4 + 4 + 64 + 32 zeroes - zeroed extracurrency, ihr_fee, fwd_fee, created_lt and created_at
-    ;; then either 0b111 - 0b11 for Maybe Either^ state init   and 0b1 for Either^ body
-    ;; or
-    ;; 0b0 for no-Maybe init and 0b1 for Either^ body
-    .store_uint(need_state_init ? MSG_WITH_STATE_INIT_BODY_REF_VALUE : MSG_BODY_REF_VALUE, need_state_init ? MSG_WITH_STATE_INIT_BODY_REF_SIZE : MSG_BODY_REF_SIZE);
+    .store_coins(amount);
 
-    if (need_state_init) {
-        msg = msg.store_ref(state_init);
-    }
-
-    msg = msg.store_ref(master_msg);
+  if (need_state_init) {
+        msg = msg.store_statinit_ref_and_body_ref(state_init, master_msg);
+  } else {
+        msg = msg.store_only_body_ref(master_msg);
+  }
 
   send_raw_message(msg.end_cell(), SEND_MODE_PAY_FEES_SEPARATELY | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 }
@@ -81,8 +76,7 @@
     }
     slice sender_address = cs~load_msg_addr();
 
-    int op = in_msg_body~load_op();
-    int query_id = in_msg_body~load_query_id();
+    (int op, int query_id) = in_msg_body~load_op_and_query_id();
 
     (int total_supply, slice admin_address, slice next_admin_address, cell jetton_wallet_code) = load_data();
 
@@ -140,7 +134,7 @@
                 .store_msg_flags_and_address_none(BOUNCEABLE)
                 .store_slice(sender_address)
                 .store_coins(0)
-                .store_uint(MSG_BODY_VALUE, MSG_BODY_SIZE)
+                .store_prefix_only_body()
                 .store_op(op::take_wallet_address)
                 .store_query_id(query_id);
 

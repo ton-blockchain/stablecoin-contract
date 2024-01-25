@@ -698,16 +698,26 @@ const int MSG_QUERY_ID_SIZE = 64;
 
 (slice, (int)) ~load_op(slice s) inline { return s.load_uint(MSG_OP_SIZE); }
 (slice, ()) ~skip_op(slice s) inline { return (s.skip_bits(MSG_OP_SIZE), ()); }
+builder store_op(builder b, int op) inline { return b.store_uint(op, MSG_OP_SIZE); }
 
 (slice, (int)) ~load_query_id(slice s) inline { return s.load_uint(MSG_QUERY_ID_SIZE); }
 (slice, ()) ~skip_query_id(slice s) inline { return (s.skip_bits(MSG_QUERY_ID_SIZE), ()); }
-
-builder store_op(builder b, int op) inline { return b.store_uint(op, MSG_OP_SIZE); }
-
 builder store_query_id(builder b, int query_id) inline { return b.store_uint(query_id, MSG_QUERY_ID_SIZE); }
+
+
+(slice, (int, int)) ~load_op_and_query_id(slice s) inline {
+    int op = s~load_op();
+    int query_id = s~load_query_id();
+    return (s, (op, query_id));
+}
 
 (slice, ()) ~skip_bounced_prefix(slice s) inline { return (s.skip_bits(32), ()); } ;; 0xFFFFFFFF
 
+
+;; 1 + 4 + 4 + 64 + 32 zeroes - zeroed extracurrency, ihr_fee, fwd_fee, created_lt and created_at
+;; then either 0b111 - 0b11 for Maybe Either^ state init   and 0b1 for Either^ body
+;; or
+;; 0b0 for no-Maybe init and 0b1 for Either^ body
 
 const int MSG_WITH_STATE_INIT_BODY_REF_VALUE = 4 + 2 + 1;
 const int MSG_WITH_STATE_INIT_BODY_REF_SIZE = 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1;
@@ -715,6 +725,25 @@ const int MSG_BODY_REF_VALUE = 1;
 const int MSG_BODY_REF_SIZE = 1 + 4 + 4 + 64 + 32 + 1 + 1;
 const int MSG_BODY_VALUE = 0;
 const int MSG_BODY_SIZE = 1 + 4 + 4 + 64 + 32 + 1 + 1;
+
+
+builder store_statinit_ref_and_body_ref(builder b, cell state_init, cell body) inline {
+    return b
+    .store_uint(MSG_WITH_STATE_INIT_BODY_REF_VALUE, MSG_WITH_STATE_INIT_BODY_REF_SIZE)
+    .store_ref(state_init)
+    .store_ref(body);
+}
+
+builder store_only_body_ref(builder b, cell body) inline {
+    return b
+    .store_uint(MSG_BODY_REF_VALUE, MSG_BODY_REF_SIZE)
+    .store_ref(body);
+}
+
+builder store_prefix_only_body(builder b) inline {
+    return b
+    .store_uint(MSG_BODY_VALUE, MSG_BODY_REF_SIZE);
+}
 
 ;; TOKEN METADATA
 
