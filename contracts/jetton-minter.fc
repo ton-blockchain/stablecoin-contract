@@ -46,14 +46,14 @@
   cell state_init = calculate_jetton_wallet_state_init(to_address, my_address(), jetton_wallet_code);
   slice to_wallet_address = calculate_jetton_wallet_address(state_init);
   var msg = begin_cell()
-    .store_uint(BOUNCEABLE, 6)
+    .store_msg_flags_and_address_none(BOUNCEABLE)
     .store_slice(to_wallet_address)
     .store_coins(amount)
     ;; 1 + 4 + 4 + 64 + 32 zeroes - zeroed extracurrency, ihr_fee, fwd_fee, created_lt and created_at
     ;; then either 0b111 - 0b11 for Maybe Either^ state init   and 0b1 for Either^ body
     ;; or
     ;; 0b0 for no-Maybe init and 0b1 for Either^ body
-    .store_uint(need_state_init ? (4 + 2 + 1) : 1, need_state_init ? (1 + 4 + 4 + 64 + 32 + 1 + 1 + 1) : (1 + 4 + 4 + 64 + 32 + 1 + 1));
+    .store_uint(need_state_init ? MSG_WITH_STATE_INIT_BODY_REF_VALUE : MSG_BODY_REF_VALUE, need_state_init ? MSG_WITH_STATE_INIT_BODY_REF_SIZE : MSG_BODY_REF_SIZE);
 
     if (need_state_init) {
         msg = msg.store_ref(state_init);
@@ -62,19 +62,18 @@
     msg = msg.store_ref(master_msg);
 
   send_raw_message(msg.end_cell(), SEND_MODE_PAY_FEES_SEPARATELY | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
-
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
     slice cs = in_msg_full.begin_parse();
-    int flags = cs~load_uint(4);
+    int flags = cs~load_msg_flags();
 
     if (is_bounced(flags)) { ;; process only mint bounces
-        in_msg_body~skip_bits(32);
-        ifnot(in_msg_body~load_uint(32) == op::internal_transfer) {
+        in_msg_body~skip_bounced_prefix();
+        ifnot(in_msg_body~load_op() == op::internal_transfer) {
           return ();
         }
-        in_msg_body~skip_bits(64); ;; query_id
+        in_msg_body~skip_query_id();
         int jetton_amount = in_msg_body~load_coins();
         (int total_supply, slice admin_address, slice next_admin_address, cell jetton_wallet_code) = load_data();
         save_data(total_supply - jetton_amount, admin_address, next_admin_address, jetton_wallet_code);
@@ -82,8 +81,8 @@
     }
     slice sender_address = cs~load_msg_addr();
 
-    int op = in_msg_body~load_uint(32);
-    int query_id = in_msg_body~load_uint(64);
+    int op = in_msg_body~load_op();
+    int query_id = in_msg_body~load_query_id();
 
     (int total_supply, slice admin_address, slice next_admin_address, cell jetton_wallet_code) = load_data();
 
@@ -95,15 +94,13 @@
 
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
-        throw_unless(error::invalid_op, master_msg_cs~load_uint(32) == op::internal_transfer);
-        master_msg_cs~skip_bits(64); ;; query_id
+        throw_unless(error::invalid_op, master_msg_cs~load_op() == op::internal_transfer);
+        master_msg_cs~skip_query_id();
         int jetton_amount = master_msg_cs~load_coins();
         master_msg_cs~load_msg_addr();
         master_msg_cs~load_msg_addr();
         master_msg_cs~load_coins();
-        if( master_msg_cs~load_int(1)) {
-            master_msg_cs~load_ref();
-        }
+        master_msg_cs~load_maybe_ref();
         master_msg_cs.end_parse();
         send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, TRUE);
         save_data(total_supply + jetton_amount, admin_address, next_admin_address, jetton_wallet_code);
@@ -123,9 +120,9 @@
             .store_uint(NON_BOUNCEABLE, 6)
             .store_slice(response_address)
             .store_coins(0)
-            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-            .store_uint(op::excesses, 32)
-            .store_uint(query_id, 64);
+            .store_uint(MSG_BODY_VALUE, MSG_BODY_SIZE)
+            .store_op(op::excesses)
+            .store_query_id(query_id);
             send_raw_message(msg.end_cell(), SEND_MODE_IGNORE_ERRORS | SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
         }
         return ();
@@ -140,12 +137,12 @@
                 : null();
 
         var msg = begin_cell()
-                .store_uint(BOUNCEABLE, 6)
+                .store_msg_flags_and_address_none(BOUNCEABLE)
                 .store_slice(sender_address)
                 .store_coins(0)
-                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-                .store_uint(op::take_wallet_address, 32)
-                .store_uint(query_id, 64);
+                .store_uint(MSG_BODY_VALUE, MSG_BODY_SIZE)
+                .store_op(op::take_wallet_address)
+                .store_query_id(query_id);
 
         if (is_same_workchain(owner_address)) {
             msg = msg.store_slice(calculate_user_jetton_wallet_address(owner_address, my_address(), jetton_wallet_code));
@@ -180,8 +177,8 @@
         int amount = in_msg_body~load_coins();
         cell master_msg = in_msg_body~load_ref();
         slice master_msg_cs = master_msg.begin_parse();
-        int master_op = master_msg_cs~load_uint(32);
-        master_msg_cs~load_uint(64);
+        int master_op = master_msg_cs~load_op();
+        master_msg_cs~skip_query_id();
         ;; parse-validate messages
         if(master_op == op::transfer) {
           master_msg_cs~load_coins();
@@ -189,9 +186,7 @@
           master_msg_cs~load_msg_addr();
           master_msg_cs~load_maybe_ref();
           master_msg_cs~load_coins();
-          if( master_msg_cs~load_int(1)) {
-            master_msg_cs~load_ref();
-          }
+          master_msg_cs~load_maybe_ref();
           master_msg_cs.end_parse();
         } elseif (master_op == op::burn) {
           master_msg_cs~load_coins();
@@ -221,12 +216,9 @@
 
 cell build_content_cell() {
     cell content_dict = new_dict();
-
-    content_dict~udict_set_ref(256, "uri"H, begin_cell().store_uint(0, 8).store_slice("ton-stable.ton").end_cell());
-    content_dict~udict_set_ref(256, "decimals"H, begin_cell().store_uint(0, 8).store_slice("9").end_cell());
-
-    cell content = begin_cell().store_uint(0, 8).store_dict(content_dict).end_cell();
-    return content;
+    content_dict~set_token_onchain_metadata_entry("uri"H, "ton-stable.ton");
+    content_dict~set_token_onchain_metadata_entry("decimals"H, "9");
+    return create_token_onchain_metadata(content_dict);
 }
 
 (int, int, slice, cell, cell) get_jetton_data() method_id {

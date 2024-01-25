@@ -644,6 +644,9 @@ builder store_builder(builder to, builder from) asm "STBR";
 const int TRUE = -1;
 const int FALSE = 0;
 
+const int MASTERCHAIN = -1;
+const int BASECHAIN = 0;
+
 ;; NEW_TVM
 
 cell my_code() asm "MYCODE";
@@ -670,6 +673,12 @@ int is_bounced(int msg_flags) inline {
     return msg_flags & 1;
 }
 
+;; only msg_flags
+(slice, (int)) ~load_msg_flags(slice s) inline { return s.load_uint(4); }
+
+;; msg_flags and address none
+builder store_msg_flags_and_address_none(builder b, int msg_flag) inline { return b.store_uint(msg_flag, 6); }
+
 ;; SEND MODES
 
 const int SEND_MODE_REGULAR = 0;
@@ -681,3 +690,39 @@ const int SEND_MODE_CARRY_ALL_BALANCE = 128;
 
 const int SEND_MODE_BOUNCE_ON_ACTION_FAIL = 16;
 const int SEND_MODE_ESTIMATE_FEE_ONLY = 1024;
+
+;; MSG
+
+const int MSG_OP_SIZE = 32;
+const int MSG_QUERY_ID_SIZE = 64;
+
+(slice, (int)) ~load_op(slice s) inline { return s.load_uint(MSG_OP_SIZE); }
+(slice, ()) ~skip_op(slice s) inline { return (s.skip_bits(MSG_OP_SIZE), ()); }
+
+(slice, (int)) ~load_query_id(slice s) inline { return s.load_uint(MSG_QUERY_ID_SIZE); }
+(slice, ()) ~skip_query_id(slice s) inline { return (s.skip_bits(MSG_QUERY_ID_SIZE), ()); }
+
+builder store_op(builder b, int op) inline { return b.store_uint(op, MSG_OP_SIZE); }
+
+builder store_query_id(builder b, int query_id) inline { return b.store_uint(query_id, MSG_QUERY_ID_SIZE); }
+
+(slice, ()) ~skip_bounced_prefix(slice s) inline { return (s.skip_bits(32), ()); } ;; 0xFFFFFFFF
+
+
+const int MSG_WITH_STATE_INIT_BODY_REF_VALUE = 4 + 2 + 1;
+const int MSG_WITH_STATE_INIT_BODY_REF_SIZE = 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1;
+const int MSG_BODY_REF_VALUE = 1;
+const int MSG_BODY_REF_SIZE = 1 + 4 + 4 + 64 + 32 + 1 + 1;
+const int MSG_BODY_VALUE = 0;
+const int MSG_BODY_SIZE = 1 + 4 + 4 + 64 + 32 + 1 + 1;
+
+;; TOKEN METADATA
+
+(cell, ()) ~set_token_onchain_metadata_entry (cell content_dict, int key, slice value) impure {
+    content_dict~udict_set_ref(256, key, begin_cell().store_uint(0, 8).store_slice(value).end_cell());
+    return (content_dict, ());
+}
+
+cell create_token_onchain_metadata(cell content_dict) inline {
+    return begin_cell().store_uint(0, 8).store_dict(content_dict).end_cell();
+}
