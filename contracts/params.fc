@@ -2,13 +2,11 @@
 
 const WORKCHAIN = 0;
 
-() force_chain(slice addr) impure {
-  (int wc, _) = parse_std_addr(addr);
-  throw_unless(error::wrong_workchain, wc == WORKCHAIN);
-}
-
 int is_same_workchain(slice addr) inline {
     (int wc, _) = parse_std_addr(addr);
-
     return wc == WORKCHAIN;
+}
+
+() check_same_workchain(slice addr) impure {
+  throw_unless(error::wrong_workchain, is_same_workchain(addr));
 }

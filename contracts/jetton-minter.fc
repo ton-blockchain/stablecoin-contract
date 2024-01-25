@@ -1,6 +1,6 @@
 ;; Jettons minter smart contract
 
-#pragma version >=0.2.0;
+#pragma version >=0.4.3;
 
 #include "stdlib.fc";
 #include "op-codes.fc";
@@ -8,8 +8,6 @@
 #include "send-modes.fc";
 #include "jetton-utils.fc";
 #include "gas.fc";
-
-slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
 
 ;; storage scheme
 ;; storage#_ total_supply:Coins admin_address:MsgAddress next_admin_address:MsgAddress jetton_wallet_code:^Cell = Storage;
@@ -93,7 +91,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
     if (op == op::mint) {
         throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
         slice to_address = in_msg_body~load_msg_addr();
-        force_chain(to_address);
+        check_same_workchain(to_address);
         int amount = in_msg_body~load_coins();
 
         cell master_msg = in_msg_body~load_ref();
@@ -108,7 +106,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
             master_msg_cs~load_ref();
         }
         master_msg_cs.end_parse();
-        send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, 1);
+        send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, TRUE);
         save_data(total_supply + jetton_amount, admin_address, next_admin_address, jetton_wallet_code);
         return ();
     }
@@ -121,7 +119,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
         );
         save_data(total_supply - jetton_amount, admin_address, next_admin_address, jetton_wallet_code);
         slice response_address = in_msg_body~load_msg_addr();
-        if (response_address.preload_uint(2) != 0) {
+        if (~ is_address_none(response_address)) {
             var msg = begin_cell()
             .store_uint(NON_BOUNCEABLE, 6)
             .store_slice(response_address)
@@ -153,12 +151,12 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
         if (is_same_workchain(owner_address)) {
             msg = msg.store_slice(calculate_user_jetton_wallet_address(owner_address, my_address(), jetton_wallet_code));
         } else {
-            msg = msg.store_uint(0, 2); ;; addr_none
+            msg = msg.store_address_none();
         }
 
         cell msg_cell = msg.store_maybe_ref(included_address).end_cell();
 ;;        int fwd_fee = send_message(msg_cell, CALCULATE_FEE);
-;;        throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(provide_address_gas_consumption));
+;;        throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(PROVIDE_ADDRESS_GAS_CONSUMPTION));
 
         send_raw_message(msg_cell, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
         return ();
@@ -173,7 +171,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
 
     if (op == op::claim_admin) {
         throw_unless(error::not_owner, equal_slices_bits(sender_address, next_admin_address));
-        save_data(total_supply, next_admin_address, addr_none(), jetton_wallet_code);
+        save_data(total_supply, next_admin_address, address_none(), jetton_wallet_code);
         return ();
     }
 
@@ -207,7 +205,7 @@ slice addr_none() asm "<b 0 2 u, b> <s PUSHSLICE"; ;; todo: simplify
         } else {
           throw(error::invalid_op);
         }
-        send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, 0);
+        send_to_jetton_wallet(to_address, jetton_wallet_code, amount, master_msg, FALSE);
         return ();
     }
 
@@ -234,7 +232,7 @@ cell build_content_cell() {
 
 (int, int, slice, cell, cell) get_jetton_data() method_id {
     (int total_supply, slice admin_address, slice next_admin_address, cell jetton_wallet_code) = load_data();
-    return (total_supply, -1, admin_address, build_content_cell(), jetton_wallet_code);
+    return (total_supply, TRUE, admin_address, build_content_cell(), jetton_wallet_code);
 }
 
 slice get_wallet_address(slice owner_address) method_id {

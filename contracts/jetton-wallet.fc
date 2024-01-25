@@ -61,7 +61,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
   int query_id = in_msg_body~load_uint(64);
   int jetton_amount = in_msg_body~load_coins();
   slice to_owner_address = in_msg_body~load_msg_addr();
-  force_chain(to_owner_address);
+  check_same_workchain(to_owner_address);
   (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
   int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
   int outgoing_transfers_unlocked = ( (status & 1) == 0 );
@@ -106,7 +106,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
                      ;; 3 messages: wal1->wal2,  wal2->owner, wal2->response
                      ;; but last one is optional (it is ok if it fails)
                      fwd_count * fwd_fee +
-                     (get_execute_fees(send_transfer_gas_consumption , receive_transfer_gas_consumption) + get_min_tons_for_storage()));
+                     (get_execute_fees(SEND_TRANSFER_GAS_CONSUMPTION , RECEIVE_TRANSFER_GAS_CONSUMPTION) + get_min_tons_for_storage()));
                      ;; This amount is calculated under two assumptions:
                      ;; 1) 2 * gas_consumption + min_tons_for_storage strictly less than 2 * max_tx_gas_price
                      ;; 2) gas_consumption will not grow, which is true if ConfigParam21 gas_limit only decreases
@@ -234,7 +234,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
 
   int fwd_fee = send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
 
-  throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(send_burn_gas_consumption , receive_burn_gas_consumption));
+  throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(SEND_BURN_GAS_CONSUMPTION , RECEIVE_BURN_GAS_CONSUMPTION));
 
   save_data(status, balance, owner_address, jetton_master_address);
 }

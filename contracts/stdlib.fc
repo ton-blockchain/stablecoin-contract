@@ -639,5 +639,18 @@ builder store_builder(builder to, builder from) asm "STBR";
 
 ;; CUSTOM:
 
+const int TRUE = -1;
+const int FALSE = 0;
+
 cell my_code() asm "MYCODE";
 int send_message(cell msg, int mode) impure asm "SENDMSG";
+
+builder store_address_none(builder b) inline {
+    return b.store_uint(0, 2);
+}
+
+slice address_none() asm "<b 0 2 u, b> <s PUSHSLICE";
+
+int is_address_none(slice s) inline {
+    return s.preload_uint(2) == 0;
+}

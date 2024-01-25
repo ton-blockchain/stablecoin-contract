@@ -1,28 +1,28 @@
-const int CONFIG::storage_prices = 18;
-const int CONFIG::basechain_gas_prices = 21;
-const int CONFIG::basechain_fwd_prices = 25;
+const int CONFIG::STORAGE_PRICES = 18;
+const int CONFIG::BASECHAIN_GAS_PRICES = 21;
+const int CONFIG::BASECHAIN_FWD_PRICES = 25;
 
-;;const mint_gas_consumption = 8290; ;; todo
-const provide_address_gas_consumption = 309; ;; todo
+;;const MINT_GAS_CONSUMPTION = 8290; ;; todo
+const PROVIDE_ADDRESS_GAS_CONSUMPTION = 309; ;; todo
 
-const jetton_wallet_bits  = 953; ;; todo
-const jetton_wallet_cells = 3; ;; todo
-;;const jetton_wallet_storage_fees = 57108956;
+const JETTON_WALLET_BITS  = 953; ;; todo
+const JETTON_WALLET_CELLS = 3; ;; todo
+;;const JETTON_WALLET_STORAGE_FEES = 57108956;
 
-const send_transfer_gas_consumption    = 15364;
-const receive_transfer_gas_consumption = 13064;
+const SEND_TRANSFER_GAS_CONSUMPTION    = 15364;
+const RECEIVE_TRANSFER_GAS_CONSUMPTION = 13064;
 
-const send_burn_gas_consumption    = 9728; ;; todo
-const receive_burn_gas_consumption = 6542; ;; todo
+const SEND_BURN_GAS_CONSUMPTION    = 9728; ;; todo
+const RECEIVE_BURN_GAS_CONSUMPTION = 6542; ;; todo
 
 ( int, int, int, int, int, int) get_fee_constants() {
-    slice gas_config = config_param(CONFIG::basechain_gas_prices).begin_parse();
+    slice gas_config = config_param(CONFIG::BASECHAIN_GAS_PRICES).begin_parse();
     gas_config~skip_bits(8); ;;gas_flat_pfx tag
     (int flat_gas_limit, int flat_gas_price) = (gas_config~load_uint(64), gas_config~load_uint(64));
     gas_config~skip_bits(8); ;;gas_prices tag
     (int gas_price) = (gas_config~load_uint(64));
 
-    slice fwd_config = config_param(CONFIG::basechain_fwd_prices).begin_parse().skip_bits(8); ;; skip tag
+    slice fwd_config = config_param(CONFIG::BASECHAIN_FWD_PRICES).begin_parse().skip_bits(8); ;; skip tag
     (int lump_price, int bit_price, int cell_price) = (fwd_config~load_uint(64), fwd_config~load_uint(64), fwd_config~load_uint(64));
 
     return ( flat_gas_limit, flat_gas_price, gas_price, lump_price, bit_price, cell_price);
@@ -40,7 +40,7 @@ int get_execute_fees(int gas1, int gas2) {
 }
 
 (int, int ) get_storage_fees() {
-    cell storage_config = config_param(CONFIG::storage_prices);
+    cell storage_config = config_param(CONFIG::STORAGE_PRICES);
     ;; lets get latest prices
     (int timestamp, slice storage_slice, int found?) = storage_config.udict_get_max?(32);
     storage_slice~skip_bits(32 + 8); ;; skip constructor byte and utime_since
@@ -53,5 +53,5 @@ int get_min_tons_for_storage() {
 
     int duration = 5 * 365 * 24 * 3600; ;; todo 5 years
 
-    return (jetton_wallet_bits * bit_price_ps + jetton_wallet_cells * cell_price_ps) * duration ^/ 65536;
+    return (JETTON_WALLET_BITS * bit_price_ps + JETTON_WALLET_CELLS * cell_price_ps) * duration ^/ 65536;
 }
