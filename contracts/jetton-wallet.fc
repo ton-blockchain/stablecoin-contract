@@ -60,7 +60,10 @@
     slice response_address = in_msg_body~load_msg_addr();
     in_msg_body~skip_maybe_ref(); ;; custom_payload
     int forward_ton_amount = in_msg_body~load_coins();
-    throw_unless(error::invalid_message, slice_bits(in_msg_body) >= 1);
+    if (in_msg_body.preload_uint(1)) {
+        (int remain_bits, int remain_refs) = slice_bits_refs(in_msg_body);
+        throw_unless(error::invalid_message, (remain_refs == 1) & (remain_bits == 1));
+    }
     slice either_forward_payload = in_msg_body;
 
     ;; see internal TL-B layout in jetton.tlb
