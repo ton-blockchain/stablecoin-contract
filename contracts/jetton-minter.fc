@@ -115,7 +115,7 @@
             .store_uint(NON_BOUNCEABLE, 6)
             .store_slice(response_address)
             .store_coins(0)
-            .store_uint(MSG_BODY_VALUE, MSG_BODY_SIZE)
+            .store_prefix_only_body()
             .store_op(op::excesses)
             .store_query_id(query_id);
             send_raw_message(msg.end_cell(), SEND_MODE_IGNORE_ERRORS | SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
