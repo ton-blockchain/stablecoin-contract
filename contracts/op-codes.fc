@@ -10,6 +10,8 @@ const op::burn_notification = 0x7bdd97de;
 const op::provide_wallet_address = 0x2c76b973;
 const op::take_wallet_address = 0xd1735400;
 
+const op::top_up = 7;
+
 const error::invalid_op = 72;
 const error::wrong_op = 0xffff;
 const error::not_owner = 73;
@@ -23,7 +25,6 @@ const op::change_admin = 3;
 const op::claim_admin = 4;
 const op::upgrade = 5;
 const op::call_to = 6;
-const op::top_up = 7;
 
 ;; jetton-wallet
 
