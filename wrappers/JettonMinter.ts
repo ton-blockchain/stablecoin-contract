@@ -67,7 +67,7 @@ export class JettonMinter implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().endCell(),
+            body: beginCell().storeUint(Op.top_up, 32).storeUint(0, 64).endCell(),
         });
     }
 

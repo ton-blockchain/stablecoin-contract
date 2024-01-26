@@ -169,6 +169,12 @@ describe('JettonWallet', () => {
             to: jettonMinter.address,
             deploy: true,
         });
+        // Make sure it didn't bounce
+        expect(deployResult.transactions).not.toHaveTransaction({
+            on: deployer.address,
+            from: jettonMinter.address,
+            inMessageBounced: true
+        });
     });
     // implementation detail
     it('minter admin should be able to mint jettons', async () => {

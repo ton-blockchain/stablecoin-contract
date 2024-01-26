@@ -13,6 +13,7 @@ export abstract class Op {
     static claim_admin = 4;
     static upgrade = 5;
     static call_to = 6;
+    static top_up = 7;
     static set_status = 100
 }
 
