@@ -216,8 +216,8 @@
 
 cell build_content_cell() {
     cell content_dict = new_dict();
-    content_dict~set_token_onchain_metadata_entry("uri"H, "ton-stable.ton");
-    content_dict~set_token_onchain_metadata_entry("decimals"H, "9");
+    content_dict~set_token_snake_metadata_entry("uri"H, "ton-stable.ton");
+    content_dict~set_token_snake_metadata_entry("decimals"H, "9");
     return create_token_onchain_metadata(content_dict);
 }
 
