@@ -80,7 +80,7 @@
         cell master_msg = in_msg_body~load_ref();
         in_msg_body.end_parse();
 
-        ;; see internal_transfer TL-B layout in jetton-interface.tlb
+        ;; see internal_transfer TL-B layout in jetton.tlb
         slice master_msg_slice = master_msg.begin_parse();
         throw_unless(error::invalid_op, master_msg_slice~load_op() == op::internal_transfer);
         master_msg_slice~skip_query_id();
@@ -96,7 +96,7 @@
     }
 
     if (op == op::burn_notification) {
-        ;; see burn_notification TL-B layout in jetton-interface.tlb
+        ;; see burn_notification TL-B layout in jetton.tlb
         int jetton_amount = in_msg_body~load_coins();
         slice from_address = in_msg_body~load_msg_addr();
         throw_unless(error::not_valid_wallet,
@@ -121,7 +121,7 @@
     }
 
     if (op == op::provide_wallet_address) {
-        ;; see provide_wallet_address TL-B layout in jetton-interface.tlb
+        ;; see provide_wallet_address TL-B layout in jetton.tlb
         slice owner_address = in_msg_body~load_msg_addr();
         int include_address? = in_msg_body~load_bool();
         in_msg_body.end_parse();
@@ -179,7 +179,7 @@
         master_msg_slice~skip_query_id();
         ;; parse-validate messages
         if (master_op == op::transfer) {
-            ;; see transfer TL-B layout in jetton-interface.tlb
+            ;; see transfer TL-B layout in jetton.tlb
             master_msg_slice~load_coins(); ;; jetton_amount
             master_msg_slice~load_msg_addr(); ;; to_owner_address
             master_msg_slice~load_msg_addr(); ;; response_address
@@ -187,7 +187,7 @@
             master_msg_slice~load_coins(); ;; forward_ton_amount
             throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1); ;; either_forward_payload
         } elseif (master_op == op::burn) {
-            ;; see burn TL-B layout in jetton-interface.tlb
+            ;; see burn TL-B layout in jetton.tlb
             master_msg_slice~load_coins(); ;; jetton_amount
             master_msg_slice~load_msg_addr(); ;; response_address
             master_msg_slice~skip_maybe_ref(); ;; custom_payload

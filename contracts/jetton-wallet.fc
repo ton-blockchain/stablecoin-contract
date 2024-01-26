@@ -41,7 +41,7 @@
 }
 
 () send_jettons(slice in_msg_body, slice sender_address, int msg_value) impure inline_ref {
-    ;; see transfer TL-B layout in jetton-interface.tlb
+    ;; see transfer TL-B layout in jetton.tlb
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
     slice to_owner_address = in_msg_body~load_msg_addr();
@@ -63,7 +63,7 @@
     throw_unless(error::invalid_message, slice_bits(in_msg_body) >= 1);
     slice either_forward_payload = in_msg_body;
 
-    ;; see internal TL-B layout in jetton-interface.tlb
+    ;; see internal TL-B layout in jetton.tlb
     cell msg_body = begin_cell()
     .store_op(op::internal_transfer)
     .store_query_id(query_id)
@@ -108,7 +108,7 @@
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int incoming_transfers_locked = ((status & 2) == 2);
     throw_if(error::contract_locked, incoming_transfers_locked);
-    ;; see internal TL-B layout in jetton-interface.tlb
+    ;; see internal TL-B layout in jetton.tlb
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
     balance += jetton_amount;
@@ -126,7 +126,7 @@
     if (forward_ton_amount) {
         slice either_forward_payload = in_msg_body;
 
-        ;; see transfer_notification TL-B layout in jetton-interface.tlb
+        ;; see transfer_notification TL-B layout in jetton.tlb
         cell msg_body = begin_cell()
         .store_op(op::transfer_notification)
         .store_query_id(query_id)
@@ -179,7 +179,7 @@
     throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
     throw_unless(error::balance_error, balance >= 0);
 
-    ;; see burn_notification TL-B layout in jetton-interface.tlb
+    ;; see burn_notification TL-B layout in jetton.tlb
     cell msg_body = begin_cell()
     .store_op(op::burn_notification)
     .store_query_id(query_id)
