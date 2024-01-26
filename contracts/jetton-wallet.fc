@@ -75,7 +75,10 @@ This is suitable for most tokens, if you need tokens transferable between workch
     slice response_address = in_msg_body~load_msg_addr();
     in_msg_body~load_dict(); ;; custom_payload
     int forward_ton_amount = in_msg_body~load_coins();
-    throw_unless(error::invalid_message, slice_bits(in_msg_body) >= 1);
+    ;; preload_uint guarantees that we have at least 1 bit left
+    ;; if that bit is 0 we expect no refs left
+    ;; Otherwise we expect at most 1
+    throw_unless(error::invalid_message, slice_refs(in_msg_body) == in_msg_body.preload_uint(1));
     slice either_forward_payload = in_msg_body;
 
     cell msg_body = begin_cell()
