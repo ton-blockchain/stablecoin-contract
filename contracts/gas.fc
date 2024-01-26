@@ -15,7 +15,7 @@ const RECEIVE_TRANSFER_GAS_CONSUMPTION = 13064;
 const SEND_BURN_GAS_CONSUMPTION    = 9728; ;; todo
 const RECEIVE_BURN_GAS_CONSUMPTION = 6542; ;; todo
 
-(int, int, int, int, int, int) get_fee_constants() {
+(int, int, int, int, int, int) get_fee_constants() inline {
     slice gas_config = config_param(CONFIG::BASECHAIN_GAS_PRICES).begin_parse();
     gas_config~skip_bits(8); ;;gas_flat_pfx tag
     (int flat_gas_limit, int flat_gas_price) = (gas_config~load_uint(64), gas_config~load_uint(64));
@@ -34,12 +34,12 @@ int flat_gas_wrapper(int flat_gas_limit, int flat_gas_price, int gas_price, int 
     return flat_gas_price + ((gas - flat_part) * gas_price ^/ 65536);
 }
 
-int get_execute_fees(int gas1, int gas2) {
+int get_execute_fees(int gas1, int gas2) inline {
     var (flat_gas_limit, flat_gas_price, gas_price, lump_price, bit_price, cell_price) = get_fee_constants();
     return flat_gas_wrapper(flat_gas_limit, flat_gas_price, gas_price, gas1) + flat_gas_wrapper(flat_gas_limit, flat_gas_price, gas_price, gas2);
 }
 
-(int, int) get_storage_fees() {
+(int, int) get_storage_fees() inline {
     cell storage_config = config_param(CONFIG::STORAGE_PRICES);
     ;; lets get latest prices
     (int timestamp, slice storage_slice, int found?) = storage_config.udict_get_max?(32);
@@ -48,7 +48,7 @@ int get_execute_fees(int gas1, int gas2) {
     return (bit_price_ps, cell_price_ps);
 }
 
-int get_min_tons_for_storage() {
+int get_min_tons_for_storage() inline {
     var (bit_price_ps, cell_price_ps) = get_storage_fees();
 
     int duration = 5 * 365 * 24 * 3600; ;; todo 5 years
