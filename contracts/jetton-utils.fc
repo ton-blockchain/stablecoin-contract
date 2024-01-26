@@ -13,13 +13,18 @@ cell pack_jetton_wallet_data(int status, int balance, slice owner_address, slice
 
 cell calculate_jetton_wallet_state_init(slice owner_address, slice jetton_master_address, cell jetton_wallet_code) inline {
     {-
-      _ split_depth:(Maybe (## 5)) special:(Maybe TickTock)
-      code:(Maybe ^Cell) data:(Maybe ^Cell)
-      library:(HashmapE 256 SimpleLib) = StateInit;
+    https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/block.tlb#L144
+    _ split_depth:(Maybe (## 5)) special:(Maybe TickTock)
+    code:(Maybe ^Cell) data:(Maybe ^Cell)
+    library:(Maybe ^Cell) = StateInit;
+
+    _ split_depth:(Maybe (## 5)) special:(Maybe TickTock)
+    code:(Maybe ^Cell) data:(Maybe ^Cell)
+    library:(HashmapE 256 SimpleLib) = StateInitWithLibs;
   -}
     return begin_cell()
-    .store_uint(0, 1 + 1)            ;; No split depth; No TickTock
-    .store_dict(jetton_wallet_code)  ;; Code
+    .store_uint(0, 1 + 1) ;; No split_depth; No special
+    .store_dict(jetton_wallet_code)
     .store_dict(;; Data
         pack_jetton_wallet_data(
             0, ;; status
@@ -27,17 +32,17 @@ cell calculate_jetton_wallet_state_init(slice owner_address, slice jetton_master
             owner_address,
             jetton_master_address)
     )
-    .store_uint(0, 1)                ;; Empty libraries
+    .store_uint(0, 1) ;; Empty libraries
     .end_cell();
 }
 
 slice calculate_jetton_wallet_address(cell state_init) inline {
     {-
-      addr_std$10 anycast:(Maybe Anycast) workchain_id:int8 address:bits256
-      = MsgAddressInt;
-  -}
+    https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/block.tlb#L105
+    addr_std$10 anycast:(Maybe Anycast) workchain_id:int8 address:bits256  = MsgAddressInt;
+    -}
     return begin_cell()
-    .store_uint(4, 3)      ;; 0b100 = addr_std$10 tag; No anycast
+    .store_uint(4, 3) ;; 0b100 = addr_std$10 tag; No anycast
     .store_int(MY_WORKCHAIN, 8)
     .store_uint(cell_hash(state_init), 256)
     .end_cell()
