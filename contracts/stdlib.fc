@@ -742,12 +742,12 @@ const int MSG_INFO_REST_BITS = 1 + 4 + 4 + 64 + 32;
 const int MSG_WITH_STATE_INIT_AND_BODY_SIZE = MSG_INFO_REST_BITS + 1 + 1 + 1;
 const int MSG_HAVE_STATE_INIT = 4;
 const int MSG_STATE_INIT_IN_REF = 2;
+const int MSG_BODY_IN_REF = 1;
 
 ;; if no StateInit:
 ;; 0b0 for `Maybe (Either StateInit ^StateInit)` and 0b1 or 0b0 for `body:(Either X ^X)`
 
 const int MSG_ONLY_BODY_SIZE = MSG_INFO_REST_BITS + 1 + 1;
-const int MSG_BODY_IN_REF = 1;
 
 builder store_statinit_ref_and_body_ref(builder b, cell state_init, cell body) inline {
     return b
