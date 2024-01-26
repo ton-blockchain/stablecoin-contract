@@ -183,14 +183,14 @@
             master_msg_slice~load_coins(); ;; jetton_amount
             master_msg_slice~load_msg_addr(); ;; to_owner_address
             master_msg_slice~load_msg_addr(); ;; response_address
-            master_msg_slice~load_maybe_ref(); ;; custom_payload
+            master_msg_slice~skip_maybe_ref(); ;; custom_payload
             master_msg_slice~load_coins(); ;; forward_ton_amount
             throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1); ;; either_forward_payload
         } elseif (master_op == op::burn) {
             ;; see burn TL-B layout in jetton-interface.tlb
             master_msg_slice~load_coins(); ;; jetton_amount
             master_msg_slice~load_msg_addr(); ;; response_address
-            master_msg_slice~load_maybe_ref(); ;; custom_payload
+            master_msg_slice~skip_maybe_ref(); ;; custom_payload
             master_msg_slice.end_parse();
         } elseif (master_op == op::set_status) {
             master_msg_slice~load_uint(STATUS_SIZE); ;; status

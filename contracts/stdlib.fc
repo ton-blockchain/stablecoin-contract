@@ -647,6 +647,9 @@ const int FALSE = 0;
 const int MASTERCHAIN = -1;
 const int BASECHAIN = 0;
 
+;;; skip (Maybe ^Cell) from `slice` [s].
+(slice, ()) ~skip_maybe_ref(slice s) asm "SKIPOPTREF";
+
 (slice, int) ~load_bool(slice s) inline {
     return s.load_int(1);
 }

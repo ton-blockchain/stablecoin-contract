@@ -58,7 +58,7 @@
     cell state_init = calculate_jetton_wallet_state_init(to_owner_address, jetton_master_address, my_code());
     slice to_wallet_address = calculate_jetton_wallet_address(state_init);
     slice response_address = in_msg_body~load_msg_addr();
-    in_msg_body~load_maybe_ref(); ;; custom_payload
+    in_msg_body~skip_maybe_ref(); ;; custom_payload
     int forward_ton_amount = in_msg_body~load_coins();
     throw_unless(error::invalid_message, slice_bits(in_msg_body) >= 1);
     slice either_forward_payload = in_msg_body;
@@ -169,7 +169,7 @@
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
     slice response_address = in_msg_body~load_msg_addr();
-    in_msg_body~load_maybe_ref(); ;; custom_payload
+    in_msg_body~skip_maybe_ref(); ;; custom_payload
     in_msg_body.end_parse();
 
     balance -= jetton_amount;
