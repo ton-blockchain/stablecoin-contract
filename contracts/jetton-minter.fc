@@ -87,8 +87,8 @@
         master_msg_slice~load_msg_addr(); ;; from_address
         master_msg_slice~load_msg_addr(); ;; response_address
         master_msg_slice~load_coins(); ;; forward_ton_amount
-        master_msg_slice~load_maybe_ref(); ;; either_forward_payload
-        master_msg_slice.end_parse();
+        throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1);
+
         send_to_jetton_wallet(to_address, jetton_wallet_code, ton_amount, master_msg, TRUE);
         save_data(total_supply + jetton_amount, admin_address, next_admin_address, jetton_wallet_code);
         return ();
@@ -181,8 +181,7 @@
             master_msg_slice~load_msg_addr(); ;; response_address
             master_msg_slice~load_maybe_ref(); ;; custom_payload
             master_msg_slice~load_coins(); ;; forward_ton_amount
-            master_msg_slice~load_maybe_ref(); ;; either_forward_payload
-            master_msg_slice.end_parse();
+            throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1);
         } elseif (master_op == op::burn) {
             master_msg_slice~load_coins(); ;; jetton_amount
             master_msg_slice~load_msg_addr(); ;; response_address
