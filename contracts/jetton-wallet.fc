@@ -1,36 +1,6 @@
 ;; Jetton Wallet Smart Contract
 
 {-
-  https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
-
-  transfer#0f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
-                   response_destination:MsgAddress custom_payload:(Maybe ^Cell)
-                   forward_ton_amount:(VarUInteger 16) forward_payload:(Either Cell ^Cell)
-                   = InternalMsgBody;
-  internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
-                             response_address:MsgAddress
-                             forward_ton_amount:(VarUInteger 16)
-                             forward_payload:(Either Cell ^Cell)
-                             = InternalMsgBody;
-  internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
-                             response_address:MsgAddress
-                             forward_ton_amount:(VarUInteger 16)
-                             forward_payload:(Either Cell ^Cell)
-                             = InternalMsgBody;
-
-  transfer_notification#7362d09c query_id:uint64 amount:(VarUInteger 16)
-                                 sender:MsgAddress forward_payload:(Either Cell ^Cell)
-                                 = InternalMsgBody;
-
-  burn#595f07bc query_id:uint64 amount:(VarUInteger 16)
-                response_destination:MsgAddress custom_payload:(Maybe ^Cell)
-                = InternalMsgBody;
-
-  burn_notification#7bdd97de query_id:uint64 amount:(VarUInteger 16)
-                     sender:MsgAddress response_destination:MsgAddress
-                     = InternalMsgBody;
-
-  excesses#d53276db query_id:uint64 = InternalMsgBody;
 -}
 
 #pragma version >=0.4.3;
@@ -71,6 +41,7 @@
 }
 
 () send_jettons(slice in_msg_body, slice sender_address, int msg_value) impure {
+    ;; see transfer TL-B layout in jetton-interface.tlb
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
     slice to_owner_address = in_msg_body~load_msg_addr();
@@ -92,6 +63,7 @@
     throw_unless(error::invalid_message, slice_bits(in_msg_body) >= 1);
     slice either_forward_payload = in_msg_body;
 
+    ;; see internal TL-B layout in jetton-interface.tlb
     cell msg_body = begin_cell()
     .store_op(op::internal_transfer)
     .store_query_id(query_id)
@@ -102,6 +74,7 @@
     .store_slice(either_forward_payload)
     .end_cell();
 
+    ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
     cell msg = begin_cell()
     .store_msg_flags_and_address_none(BOUNCEABLE)
     .store_slice(to_wallet_address)
@@ -135,6 +108,7 @@
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int incoming_transfers_locked = ((status & 2) == 2);
     throw_if(error::contract_locked, incoming_transfers_locked);
+    ;; see internal TL-B layout in jetton-interface.tlb
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
     balance += jetton_amount;
@@ -152,6 +126,7 @@
     if (forward_ton_amount) {
         slice either_forward_payload = in_msg_body;
 
+        ;; see transfer_notification TL-B layout in jetton-interface.tlb
         cell msg_body = begin_cell()
         .store_op(op::transfer_notification)
         .store_query_id(query_id)
@@ -160,6 +135,7 @@
         .store_slice(either_forward_payload)
         .end_cell();
 
+        ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
         cell msg = begin_cell()
         .store_msg_flags_and_address_none(NON_BOUNCEABLE)
         .store_slice(owner_address)
@@ -173,6 +149,7 @@
     if (~ is_address_none(response_address)) {
         raw_reserve(max(ton_balance_before_msg, get_min_tons_for_storage()), RESERVE_AT_MOST);
 
+        ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
         cell msg = begin_cell()
         .store_msg_flags_and_address_none(NON_BOUNCEABLE)
         .store_slice(response_address)
@@ -202,6 +179,7 @@
     throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
     throw_unless(error::balance_error, balance >= 0);
 
+    ;; see burn_notification TL-B layout in jetton-interface.tlb
     cell msg_body = begin_cell()
     .store_op(op::burn_notification)
     .store_query_id(query_id)
@@ -210,6 +188,7 @@
     .store_slice(response_address)
     .end_cell();
 
+    ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
     cell msg = begin_cell()
     .store_msg_flags_and_address_none(BOUNCEABLE)
     .store_slice(jetton_master_address)

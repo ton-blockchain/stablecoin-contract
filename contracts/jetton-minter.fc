@@ -80,6 +80,7 @@
         cell master_msg = in_msg_body~load_ref();
         in_msg_body.end_parse();
 
+        ;; see internal_transfer TL-B layout in jetton-interface.tlb
         slice master_msg_slice = master_msg.begin_parse();
         throw_unless(error::invalid_op, master_msg_slice~load_op() == op::internal_transfer);
         master_msg_slice~skip_query_id();
@@ -87,7 +88,7 @@
         master_msg_slice~load_msg_addr(); ;; from_address
         master_msg_slice~load_msg_addr(); ;; response_address
         master_msg_slice~load_coins(); ;; forward_ton_amount
-        throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1);
+        throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1); ;; either_forward_payload
 
         send_to_jetton_wallet(to_address, jetton_wallet_code, ton_amount, master_msg, TRUE);
         save_data(total_supply + jetton_amount, admin_address, next_admin_address, jetton_wallet_code);
@@ -95,6 +96,7 @@
     }
 
     if (op == op::burn_notification) {
+        ;; see burn_notification TL-B layout in jetton-interface.tlb
         int jetton_amount = in_msg_body~load_coins();
         slice from_address = in_msg_body~load_msg_addr();
         throw_unless(error::not_valid_wallet,
@@ -119,6 +121,7 @@
     }
 
     if (op == op::provide_wallet_address) {
+        ;; see provide_wallet_address TL-B layout in jetton-interface.tlb
         slice owner_address = in_msg_body~load_msg_addr();
         int include_address? = in_msg_body~load_bool();
         in_msg_body.end_parse();
@@ -176,13 +179,15 @@
         master_msg_slice~skip_query_id();
         ;; parse-validate messages
         if (master_op == op::transfer) {
+            ;; see transfer TL-B layout in jetton-interface.tlb
             master_msg_slice~load_coins(); ;; jetton_amount
             master_msg_slice~load_msg_addr(); ;; to_owner_address
             master_msg_slice~load_msg_addr(); ;; response_address
             master_msg_slice~load_maybe_ref(); ;; custom_payload
             master_msg_slice~load_coins(); ;; forward_ton_amount
-            throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1);
+            throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1); ;; either_forward_payload
         } elseif (master_op == op::burn) {
+            ;; see burn TL-B layout in jetton-interface.tlb
             master_msg_slice~load_coins(); ;; jetton_amount
             master_msg_slice~load_msg_addr(); ;; response_address
             master_msg_slice~load_maybe_ref(); ;; custom_payload
