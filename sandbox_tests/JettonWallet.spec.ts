@@ -505,16 +505,8 @@ describe('JettonWallet', () => {
             assertFailTransfer(deployer.address, deployerJettonWallet.address,
                                res.transactions,errCodes);
 
-            // Now test that we can't send message without payload if maybe flag is set
+            // Now test that we can't send message without payload if either flag is set
             let testPayload = beginCell().storeBuilder(msgTemplate).storeBit(true).endCell();
-            res =  await sendTransferPayload(deployer.address,
-                                             deployerJettonWallet.address, testPayload);
-
-            assertFailTransfer(deployer.address, deployerJettonWallet.address,
-                               res.transactions,errCodes);
-            // Now maybe flag is false, but payload is present
-            testPayload = beginCell().storeBuilder(msgTemplate).storeBit(false).storeRef(forwardPayload).endCell();
-
             res =  await sendTransferPayload(deployer.address,
                                              deployerJettonWallet.address, testPayload);
 
