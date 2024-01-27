@@ -2,26 +2,28 @@ const int CONFIG::STORAGE_PRICES = 18;
 const int CONFIG::BASECHAIN_GAS_PRICES = 21;
 const int CONFIG::BASECHAIN_FWD_PRICES = 25;
 
-;;const MINT_GAS_CONSUMPTION = 8290; ;; todo
-const PROVIDE_ADDRESS_GAS_CONSUMPTION = 309; ;; todo
+;;const MINT_GAS_CONSUMPTION = 8290;
+const PROVIDE_ADDRESS_GAS_CONSUMPTION = 309;
 
-const JETTON_WALLET_BITS  = 953; ;; todo
-const JETTON_WALLET_CELLS = 3; ;; todo
+const JETTON_WALLET_BITS  = 953;
+const JETTON_WALLET_CELLS = 3;
 ;;const JETTON_WALLET_STORAGE_FEES = 57108956;
 
 const SEND_TRANSFER_GAS_CONSUMPTION    = 15364;
 const RECEIVE_TRANSFER_GAS_CONSUMPTION = 13064;
 
-const SEND_BURN_GAS_CONSUMPTION    = 9728; ;; todo
-const RECEIVE_BURN_GAS_CONSUMPTION = 6542; ;; todo
+const SEND_BURN_GAS_CONSUMPTION    = 9728;
+const RECEIVE_BURN_GAS_CONSUMPTION = 6542;
 
 (int, int, int, int, int, int) get_fee_constants() inline {
+    ;; https://github.com/ton-blockchain/ton/blob/master/crypto/block/block.tlb
     slice gas_config = config_param(CONFIG::BASECHAIN_GAS_PRICES).begin_parse();
     gas_config~skip_bits(8); ;;gas_flat_pfx tag
     (int flat_gas_limit, int flat_gas_price) = (gas_config~load_uint(64), gas_config~load_uint(64));
     gas_config~skip_bits(8); ;;gas_prices tag
     (int gas_price) = (gas_config~load_uint(64));
 
+    ;; https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/block.tlb#L722
     slice fwd_config = config_param(CONFIG::BASECHAIN_FWD_PRICES).begin_parse().skip_bits(8); ;; skip tag
     (int lump_price, int bit_price, int cell_price) = (fwd_config~load_uint(64), fwd_config~load_uint(64), fwd_config~load_uint(64));
 
@@ -40,18 +42,20 @@ int get_execute_fees(int gas1, int gas2) inline {
 }
 
 (int, int) get_storage_fees() inline {
+    ;; https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/block.tlb#L687
     cell storage_config = config_param(CONFIG::STORAGE_PRICES);
     ;; lets get latest prices
     (int timestamp, slice storage_slice, int found?) = storage_config.udict_get_max?(32);
-    storage_slice~skip_bits(32 + 8); ;; skip constructor byte and utime_since
+    storage_slice~skip_bits(8 + 32); ;; skip constructor byte and utime_since
     (int bit_price_ps, int cell_price_ps) = (storage_slice~load_uint(64), storage_slice~load_uint(64));
     return (bit_price_ps, cell_price_ps);
 }
 
 int get_min_tons_for_storage() inline {
-    var (bit_price_ps, cell_price_ps) = get_storage_fees();
+    (int bit_price_ps, int cell_price_ps) = get_storage_fees();
 
-    int duration = 5 * 365 * 24 * 3600; ;; todo 5 years
+    int duration = 5 * 365 * 24 * 3600; ;; 5 years
 
+    ;; https://github.com/ton-blockchain/ton/blob/51baec48a02e5ba0106b0565410d2c2fd4665157/crypto/block/transaction.cpp#L621
     return (JETTON_WALLET_BITS * bit_price_ps + JETTON_WALLET_CELLS * cell_price_ps) * duration ^/ 65536;
 }
