@@ -147,7 +147,7 @@
 
         cell msg_cell = msg.store_maybe_ref(included_address).end_cell();
 
-        send_raw_message(msg_cell, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+        send_raw_message(msg_cell, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
         return ();
     }
 

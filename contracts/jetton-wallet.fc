@@ -121,8 +121,6 @@
     );
     int forward_ton_amount = in_msg_body~load_coins();
 
-    int ton_balance_before_msg = my_ton_balance - msg_value;
-
     if (forward_ton_amount) {
         slice either_forward_payload = in_msg_body;
 
@@ -147,6 +145,7 @@
     }
 
     if (~ is_address_none(response_address)) {
+        int ton_balance_before_msg = my_ton_balance - msg_value;
         raw_reserve(max(ton_balance_before_msg, get_min_tons_for_storage()), RESERVE_AT_MOST);
 
         ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
@@ -196,7 +195,7 @@
     .store_only_body_ref(msg_body)
     .end_cell();
 
-    int fwd_fee = send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+    int fwd_fee = send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
     ;; NOTE we can not allow fails in action phase since in that case there will be
     ;; no bounce. Thus check and throw in computation phase.
