@@ -2,8 +2,14 @@ const int CONFIG::STORAGE_PRICES = 18;
 const int CONFIG::BASECHAIN_GAS_PRICES = 21;
 const int CONFIG::BASECHAIN_FWD_PRICES = 25;
 
-const JETTON_WALLET_BITS  = 953;
+const JETTON_WALLET_BITS  = 1115;
 const JETTON_WALLET_CELLS = 3;
+
+;; difference in JETTON_WALLET_BITS/JETTON_WALLET_INITSTATE_BITS is difference in
+;; StateInit and AccountStorage (https://github.com/ton-blockchain/ton/blob/master/crypto/block/block.tlb)
+;; we count bits as if balances are max possible
+const JETTON_WALLET_INITSTATE_BITS  = 931;
+const JETTON_WALLET_INITSTATE_CELLS = 3;
 
 const SEND_TRANSFER_GAS_CONSUMPTION    = 15364;
 const RECEIVE_TRANSFER_GAS_CONSUMPTION = 13064;
@@ -16,43 +22,10 @@ const PROVIDE_ADDRESS_GAS_CONSUMPTION = 309;
 
 const MIN_STORAGE_DURATION = 5 * 365 * 24 * 3600; ;; 5 years
 
-(int, int, int) get_gas_constants() inline {
-    ;; https://github.com/ton-blockchain/ton/blob/master/crypto/block/block.tlb
-    slice gas_config = config_param(CONFIG::BASECHAIN_GAS_PRICES).begin_parse(); ;; todo: get from c7 - 3
-    gas_config~skip_bits(8); ;;gas_flat_pfx tag
-    (int flat_gas_limit, int flat_gas_price) = (gas_config~load_uint(64), gas_config~load_uint(64));
-    gas_config~skip_bits(8); ;;gas_prices tag
-    int gas_price = (gas_config~load_uint(64));
-
-    return (flat_gas_limit, flat_gas_price, gas_price);
-}
-
-int calculate_gas_fees(int flat_gas_limit, int flat_gas_price, int gas_price, int gas) inline {
-    ;; Gas calculation: https://github.com/ton-blockchain/ton/blob/51baec48a02e5ba0106b0565410d2c2fd4665157/crypto/block/transaction.cpp#L1124
-    int flat_part = min(gas, flat_gas_limit);
-    return flat_gas_price + ((gas - flat_part) * gas_price ^/ 65536);
-}
-
-;; todo: replace by GETEXECUTIONPRICE
-int get_execute_fees(int gas1, int gas2) inline {
-    (int flat_gas_limit, int flat_gas_price, int gas_price) = get_gas_constants();
-    return calculate_gas_fees(flat_gas_limit, flat_gas_price, gas_price, gas1) + calculate_gas_fees(flat_gas_limit, flat_gas_price, gas_price, gas2);
-}
-
-(int, int) get_storage_fees() inline {
-    ;; https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/block.tlb#L687
-    cell storage_config = config_param(CONFIG::STORAGE_PRICES); ;; todo: get from c7 - 0
-    ;; lets get latest prices
-    (int timestamp, slice storage_slice, int found?) = storage_config.udict_get_max?(32);
-    storage_slice~skip_bits(8 + 32); ;; skip constructor byte and utime_since
-    (int bit_price_ps, int cell_price_ps) = (storage_slice~load_uint(64), storage_slice~load_uint(64));
-    return (bit_price_ps, cell_price_ps);
-}
-
-;; todo: replace by GETSTORAGEPRICE
 int calculate_storage_fee(int duration) inline {
-    (int bit_price_ps, int cell_price_ps) = get_storage_fees();
+    return get_storage_price(MY_WORKCHAIN, duration, JETTON_WALLET_BITS, JETTON_WALLET_CELLS);
+}
 
-    ;; https://github.com/ton-blockchain/ton/blob/51baec48a02e5ba0106b0565410d2c2fd4665157/crypto/block/transaction.cpp#L621
-    return (JETTON_WALLET_BITS * bit_price_ps + JETTON_WALLET_CELLS * cell_price_ps) * duration ^/ 65536;
+int init_state_overhead() inline {
+    return get_forward_price(MY_WORKCHAIN, JETTON_WALLET_INITSTATE_BITS, JETTON_WALLET_INITSTATE_CELLS);
 }

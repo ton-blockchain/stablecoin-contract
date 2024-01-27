@@ -639,6 +639,11 @@ builder store_builder(builder to, builder from) asm "STBR";
 
 ;; CUSTOM:
 
+int get_compute_price(int workchain, int gas_used) asm "GETEXECUTIONPRICE";
+int get_storage_price(int workchain, int seconds, int bits, int cells) asm "GETSTORAGEPRICE";
+int get_forward_price(int workchain, int bits, int cells) asm "GETFORWARDPRICE";
+int get_precompiled_gas_consumption() asm "GETPRECOMPILEDGAS";
+
 ;; BASIC
 
 const int TRUE = -1;
@@ -854,10 +859,6 @@ const int RESERVE_BOUNCE_ON_ACTION_FAIL = 16;
 ;; On-chain content layout The first byte is 0x00 and the rest is key/value dictionary.
 cell create_token_onchain_metadata(cell content_dict) inline {
     return begin_cell().store_uint(0, 8).store_dict(content_dict).end_cell();
-}
-
-int get_precompiled_gas_consumption() inline {
-    return null(); ;; todo GETPRECOMPILEDGAS
 }
 
 int my_storage_due() inline {
