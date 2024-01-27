@@ -27,6 +27,7 @@ export abstract class Errors {
     static contract_locked = 45;
     static balance_error = 47;
     static not_enough_gas = 48;
+    static invalid_mesage = 49;
     static discovery_fee_not_matched = 75;
 }
 
