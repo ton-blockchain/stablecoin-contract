@@ -1,15 +1,6 @@
 ;; Jetton Wallet Smart Contract
 
 {-
-
-NOTE that this tokens can be transferred within the same workchain.
-
-This is suitable for most tokens, if you need tokens transferable between workchains there are two solutions:
-
-1) use more expensive but universal function to calculate message forward fee for arbitrary destination (see `misc/forward-fee-calc.fc`)
-
-2) use token holder proxies in target workchain (that way even 'non-universal' token can be used from any workchain)
-
 -}
 
 #pragma version >=0.4.3;
@@ -23,10 +14,10 @@ This is suitable for most tokens, if you need tokens transferable between workch
 {-
   Storage
 
-  Note, status==0 means unlocked - user can freely transfer jettons.
-        (status & 1) bit means user can not send/burn jettons
+  Note, status==0 means unlocked - user can freely transfer, burn and recieve jettons.
+        (status & 1) bit means user can not send and burn jettons
         (status & 2) bit means user can not receive jettons.
-  Status does not affect ability minter smart-contract to govern jettons.
+  Master (minter) smart-contract able to make outgoing actions (transfer, burn jettons) with any status.
 
   storage#_ status:uint4
             balance:Coins owner_address:MsgAddressInt
@@ -35,7 +26,12 @@ This is suitable for most tokens, if you need tokens transferable between workch
 
 (int, int, slice, slice) load_data() inline {
     slice ds = get_data().begin_parse();
-    var data = (ds~load_uint(STATUS_SIZE), ds~load_coins(), ds~load_msg_addr(), ds~load_msg_addr());
+    var data = (
+        ds~load_uint(STATUS_SIZE), ;; status
+        ds~load_coins(), ;; balance
+        ds~load_msg_addr(), ;; owner_address
+        ds~load_msg_addr() ;; jetton_master_address
+    );
     ds.end_parse();
     return data;
 }
@@ -44,19 +40,8 @@ This is suitable for most tokens, if you need tokens transferable between workch
     set_data(pack_jetton_wallet_data(status, balance, owner_address, jetton_master_address));
 }
 
-{-
-  transfer#0f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
-                   response_destination:MsgAddress custom_payload:(Maybe ^Cell)
-                   forward_ton_amount:(VarUInteger 16) forward_payload:(Either Cell ^Cell)
-                   = InternalMsgBody;
-  internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
-                             response_address:MsgAddress
-                             forward_ton_amount:(VarUInteger 16)
-                             forward_payload:(Either Cell ^Cell)
-                             = InternalMsgBody;
--}
-
-() send_jettons(slice in_msg_body, slice sender_address, int msg_value) impure {
+() send_jettons(slice in_msg_body, slice sender_address, int msg_value) impure inline_ref {
+    ;; see transfer TL-B layout in jetton.tlb
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
     slice to_owner_address = in_msg_body~load_msg_addr();
@@ -73,14 +58,12 @@ This is suitable for most tokens, if you need tokens transferable between workch
     cell state_init = calculate_jetton_wallet_state_init(to_owner_address, jetton_master_address, my_code());
     slice to_wallet_address = calculate_jetton_wallet_address(state_init);
     slice response_address = in_msg_body~load_msg_addr();
-    in_msg_body~load_dict(); ;; custom_payload
+    in_msg_body~skip_maybe_ref(); ;; custom_payload
     int forward_ton_amount = in_msg_body~load_coins();
-    ;; preload_uint guarantees that we have at least 1 bit left
-    ;; if that bit is 0 we expect no refs left
-    ;; Otherwise we expect at most 1
-    throw_unless(error::invalid_message, slice_refs(in_msg_body) == in_msg_body.preload_uint(1));
+    check_either_forward_payload(in_msg_body);
     slice either_forward_payload = in_msg_body;
 
+    ;; see internal TL-B layout in jetton.tlb
     cell msg_body = begin_cell()
     .store_op(op::internal_transfer)
     .store_query_id(query_id)
@@ -91,6 +74,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
     .store_slice(either_forward_payload)
     .end_cell();
 
+    ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
     cell msg = begin_cell()
     .store_msg_flags_and_address_none(BOUNCEABLE)
     .store_slice(to_wallet_address)
@@ -118,26 +102,13 @@ This is suitable for most tokens, if you need tokens transferable between workch
     save_data(status, balance, owner_address, jetton_master_address);
 }
 
-{-
-  internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
-                             response_address:MsgAddress
-                             forward_ton_amount:(VarUInteger 16)
-                             forward_payload:(Either Cell ^Cell)
-                             = InternalMsgBody;
-
-  transfer_notification#7362d09c query_id:uint64 amount:(VarUInteger 16)
-                                 sender:MsgAddress forward_payload:(Either Cell ^Cell)
-                                 = InternalMsgBody;
-
-  excesses#d53276db query_id:uint64 = InternalMsgBody;
--}
-
-() receive_jettons(slice in_msg_body, slice sender_address, int my_ton_balance, int msg_value) impure {
+() receive_jettons(slice in_msg_body, slice sender_address, int my_ton_balance, int msg_value) impure inline_ref {
     ;; NOTE we can not allow fails in action phase since in that case there will be
     ;; no bounce. Thus check and throw in computation phase.
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int incoming_transfers_locked = ((status & 2) == 2);
     throw_if(error::contract_locked, incoming_transfers_locked);
+    ;; see internal TL-B layout in jetton.tlb
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
     balance += jetton_amount;
@@ -150,11 +121,10 @@ This is suitable for most tokens, if you need tokens transferable between workch
     );
     int forward_ton_amount = in_msg_body~load_coins();
 
-    int ton_balance_before_msg = my_ton_balance - msg_value;
-
     if (forward_ton_amount) {
         slice either_forward_payload = in_msg_body;
 
+        ;; see transfer_notification TL-B layout in jetton.tlb
         cell msg_body = begin_cell()
         .store_op(op::transfer_notification)
         .store_query_id(query_id)
@@ -163,6 +133,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
         .store_slice(either_forward_payload)
         .end_cell();
 
+        ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
         cell msg = begin_cell()
         .store_msg_flags_and_address_none(NON_BOUNCEABLE)
         .store_slice(owner_address)
@@ -174,8 +145,10 @@ This is suitable for most tokens, if you need tokens transferable between workch
     }
 
     if (~ is_address_none(response_address)) {
+        int ton_balance_before_msg = my_ton_balance - msg_value;
         raw_reserve(max(ton_balance_before_msg, get_min_tons_for_storage()), RESERVE_AT_MOST);
 
+        ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
         cell msg = begin_cell()
         .store_msg_flags_and_address_none(NON_BOUNCEABLE)
         .store_slice(response_address)
@@ -190,23 +163,14 @@ This is suitable for most tokens, if you need tokens transferable between workch
     save_data(status, balance, owner_address, jetton_master_address);
 }
 
-{-
-  burn#595f07bc query_id:uint64 amount:(VarUInteger 16)
-                response_destination:MsgAddress custom_payload:(Maybe ^Cell)
-                = InternalMsgBody;
-
-  burn_notification#7bdd97de query_id:uint64 amount:(VarUInteger 16)
-                     sender:MsgAddress response_destination:MsgAddress
-                     = InternalMsgBody;
--}
-
-() burn_jettons(slice in_msg_body, slice sender_address, int msg_value) impure {
+() burn_jettons(slice in_msg_body, slice sender_address, int msg_value) impure inline_ref {
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
     slice response_address = in_msg_body~load_msg_addr();
-    ;; ignore custom payload
-    ;; slice custom_payload = in_msg_body~load_dict();
+    in_msg_body~skip_maybe_ref(); ;; custom_payload
+    in_msg_body.end_parse();
+
     balance -= jetton_amount;
     int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
     throw_unless(error::not_owner, equal_slices_bits(owner_address, sender_address) | is_from_master);
@@ -214,6 +178,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
     throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
     throw_unless(error::balance_error, balance >= 0);
 
+    ;; see burn_notification TL-B layout in jetton.tlb
     cell msg_body = begin_cell()
     .store_op(op::burn_notification)
     .store_query_id(query_id)
@@ -222,6 +187,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
     .store_slice(response_address)
     .end_cell();
 
+    ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
     cell msg = begin_cell()
     .store_msg_flags_and_address_none(BOUNCEABLE)
     .store_slice(jetton_master_address)
@@ -229,7 +195,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
     .store_only_body_ref(msg_body)
     .end_cell();
 
-    int fwd_fee = send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+    int fwd_fee = send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
     ;; NOTE we can not allow fails in action phase since in that case there will be
     ;; no bounce. Thus check and throw in computation phase.
@@ -238,15 +204,14 @@ This is suitable for most tokens, if you need tokens transferable between workch
     save_data(status, balance, owner_address, jetton_master_address);
 }
 
-() on_bounce(slice in_msg_body) impure {
+() on_bounce(slice in_msg_body) impure inline {
     in_msg_body~skip_bounced_prefix();
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int op = in_msg_body~load_op();
     throw_unless(error::wrong_op, (op == op::internal_transfer) | (op == op::burn_notification));
     in_msg_body~skip_query_id();
     int jetton_amount = in_msg_body~load_coins();
-    balance += jetton_amount;
-    save_data(status, balance, owner_address, jetton_master_address);
+    save_data(status, balance + jetton_amount, owner_address, jetton_master_address);
 }
 
 () recv_internal(int my_ton_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -283,6 +248,7 @@ This is suitable for most tokens, if you need tokens transferable between workch
     if (op == op::set_status) {
         in_msg_body~skip_query_id();
         int new_status = in_msg_body~load_uint(STATUS_SIZE);
+        in_msg_body.end_parse();
         (_, int balance, slice owner_address, slice jetton_master_address) = load_data();
         throw_unless(error::not_valid_wallet, equal_slices_bits(sender_address, jetton_master_address));
         save_data(new_status, balance, owner_address, jetton_master_address);

@@ -8,6 +8,6 @@ int is_same_workchain(slice addr) inline {
     return wc == MY_WORKCHAIN;
 }
 
-() check_same_workchain(slice addr) impure {
+() check_same_workchain(slice addr) impure inline {
     throw_unless(error::wrong_workchain, is_same_workchain(addr));
 }

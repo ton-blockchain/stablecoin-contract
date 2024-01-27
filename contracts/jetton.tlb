@@ -1,0 +1,30 @@
+// https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
+// https://github.com/ton-blockchain/TEPs/blob/master/text/0089-jetton-wallet-discovery.md
+
+transfer#f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
+                   response_destination:MsgAddress custom_payload:(Maybe ^Cell)
+                   forward_ton_amount:(VarUInteger 16) forward_payload:(Either Cell ^Cell)
+                   = InternalMsgBody;
+internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
+                             response_address:MsgAddress
+                             forward_ton_amount:(VarUInteger 16)
+                             forward_payload:(Either Cell ^Cell)
+                             = InternalMsgBody;
+
+transfer_notification#7362d09c query_id:uint64 amount:(VarUInteger 16)
+                                 sender:MsgAddress forward_payload:(Either Cell ^Cell)
+                                 = InternalMsgBody;
+
+burn#595f07bc query_id:uint64 amount:(VarUInteger 16)
+                response_destination:MsgAddress custom_payload:(Maybe ^Cell)
+                = InternalMsgBody;
+
+burn_notification#7bdd97de query_id:uint64 amount:(VarUInteger 16)
+                     sender:MsgAddress response_destination:MsgAddress
+                     = InternalMsgBody;
+
+excesses#d53276db query_id:uint64 = InternalMsgBody;
+
+provide_wallet_address#2c76b973 query_id:uint64 owner_address:MsgAddress include_address:Bool = InternalMsgBody;
+
+take_wallet_address#d1735400 query_id:uint64 wallet_address:MsgAddress owner_address:(Maybe ^MsgAddress) = InternalMsgBody;
