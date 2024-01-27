@@ -1,4 +1,4 @@
-import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot } from '@ton/sandbox';
+import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot, SendMessageResult } from '@ton/sandbox';
 import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender, Dictionary } from '@ton/core';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { JettonMinter, jettonMinterConfigToCell, LockType } from '../wrappers/JettonMinter';
@@ -404,33 +404,126 @@ describe('JettonWallet', () => {
         expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance2);
     });
 
-    it.skip('malformed forward payload', async() => {
+    describe('Malformed transfer', () => {
+        let sendTransferPayload: (from: Address, to: Address, payload: Cell) => Promise<SendMessageResult>;
+        let assertFailTransfer: <T extends Transaction> (from: Address, to: Address, txs: Array<T>, codes: Array<number>) => void;
+        beforeAll(() => {
+            sendTransferPayload = async (from, to, payload) => {
+                return await blockchain.sendMessage(internal({
+                    from,
+                    to,
+                    body: payload,
+                    value: toNano('1')
+                }));
+            };
+            assertFailTransfer = (from, to, txs, codes) => {
+                expect(txs).toHaveTransaction({
+                    on: to,
+                    from,
+                    aborted: true,
+                    success: false,
+                    exitCode: (c) => codes.includes(c!)
+                });
+                expect(txs).not.toHaveTransaction({
+                    from: to,
+                    op: Op.internal_transfer
+                });
+            }
+        });
+        it('malfored custom payload', async () => {
+            const deployerJettonWallet    = await userWallet(deployer.address);
+            const notDeployerJettonWallet = await userWallet(notDeployer.address);
 
-        const deployerJettonWallet    = await userWallet(deployer.address);
-        const notDeployerJettonWallet = await userWallet(notDeployer.address);
+            let sentAmount     = toNano('0.5');
+            let forwardPayload = beginCell().storeUint(getRandomInt(100000, 200000), 128).endCell();
+            let customPayload  = beginCell().storeUint(getRandomInt(100000, 200000), 128).endCell();
 
-        let sentAmount     = toNano('0.5');
-        let forwardAmount  = getRandomTon(0.01, 0.05); // toNano('0.05');
-        let forwardPayload = beginCell().storeUint(0x1234567890abcdefn, 128).endCell();
-        let msgPayload     = beginCell().storeUint(0xf8a7ea5, 32).storeUint(0, 64) // op, queryId
-                                        .storeCoins(sentAmount).storeAddress(notDeployer.address)
-                                        .storeAddress(deployer.address)
-                                        .storeMaybeRef(null)
-                                        .storeCoins(toNano('0.05')) // No forward payload indication
-                            .endCell();
-        const res = await blockchain.sendMessage(internal({
-                                                    from: deployer.address,
-                                                    to: deployerJettonWallet.address,
-                                                    body: msgPayload,
-                                                    value: toNano('0.2')
-                                                    }));
+            let forwardTail    = beginCell().storeCoins(toNano('0.05')).storeMaybeRef(forwardPayload);
+            const msgTemplate  = beginCell().storeUint(0xf8a7ea5, 32).storeUint(0, 64) // op, queryId
+                                            .storeCoins(sentAmount).storeAddress(notDeployer.address)
+                                            .storeAddress(deployer.address)
+            let testPayload  = beginCell()
+                                .storeBuilder(msgTemplate)
+                                .storeBit(true)
+                                .storeBuilder(forwardTail)
+                               .endCell();
 
+            let errCodes = [9, Errors.invalid_mesage];
+            let res = await sendTransferPayload(deployer.address,
+                                                deployerJettonWallet.address, 
+                                                testPayload);
+            assertFailTransfer(deployer.address, deployerJettonWallet.address,
+                       res.transactions, errCodes);
 
-        expect(res.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: deployerJettonWallet.address,
-            aborted: true,
-            exitCode: 708
+            testPayload = beginCell()
+                             .storeBuilder(msgTemplate)
+                             .storeBit(false)
+                             .storeRef(customPayload)
+                             .storeBuilder(forwardTail)
+                           .endCell();
+            res = await sendTransferPayload(deployer.address,
+                                            deployerJettonWallet.address, 
+                                            testPayload);
+            assertFailTransfer(deployer.address, deployerJettonWallet.address,
+                       res.transactions, errCodes);
+            // Now self test that we didnt screw the payloads ourselves
+            testPayload = beginCell()
+                             .storeBuilder(msgTemplate)
+                             .storeBit(true)
+                             .storeRef(customPayload)
+                             .storeBuilder(forwardTail)
+                           .endCell();
+
+            res = await sendTransferPayload(deployer.address,
+                                            deployerJettonWallet.address, 
+                                            testPayload);
+
+            expect(res.transactions).toHaveTransaction({
+                on: deployerJettonWallet.address,
+                from: deployer.address,
+                op: Op.transfer,
+                success: true
+            });
+        });
+        it('malformed forward payload', async() => {
+
+            const deployerJettonWallet    = await userWallet(deployer.address);
+            const notDeployerJettonWallet = await userWallet(notDeployer.address);
+
+            let sentAmount     = toNano('0.5');
+            let forwardAmount  = getRandomTon(0.01, 0.05); // toNano('0.05');
+            let forwardPayload = beginCell().storeUint(0x1234567890abcdefn, 128).endCell();
+            let msgTemplate    = beginCell().storeUint(0xf8a7ea5, 32).storeUint(0, 64) // op, queryId
+                                            .storeCoins(sentAmount).storeAddress(notDeployer.address)
+                                            .storeAddress(deployer.address)
+                                            .storeMaybeRef(null)
+                                            .storeCoins(toNano('0.05')) // No forward payload indication
+            let errCodes = [9, Errors.invalid_mesage];
+            let res = await sendTransferPayload(deployer.address,
+                                                deployerJettonWallet.address, msgTemplate.endCell());
+
+            assertFailTransfer(deployer.address, deployerJettonWallet.address,
+                               res.transactions,errCodes);
+
+            // Now test that we can't send message without payload if either flag is set
+            let testPayload = beginCell().storeBuilder(msgTemplate).storeBit(true).endCell();
+            res =  await sendTransferPayload(deployer.address,
+                                             deployerJettonWallet.address, testPayload);
+
+            assertFailTransfer(deployer.address, deployerJettonWallet.address,
+                               res.transactions,errCodes);
+            // Now valid payload
+            testPayload = beginCell().storeBuilder(msgTemplate).storeBit(true).storeRef(forwardPayload).endCell();
+
+            res =  await sendTransferPayload(deployer.address,
+                                             deployerJettonWallet.address, testPayload);
+
+            expect(res.transactions).toHaveTransaction({
+                from: deployer.address,
+                to: deployerJettonWallet.address,
+                op: Op.transfer,
+                success: true,
+            });
         });
     });
 
