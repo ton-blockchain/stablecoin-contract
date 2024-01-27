@@ -16,7 +16,7 @@ const PROVIDE_ADDRESS_GAS_CONSUMPTION = 309;
 
 (int, int, int) get_gas_constants() inline {
     ;; https://github.com/ton-blockchain/ton/blob/master/crypto/block/block.tlb
-    slice gas_config = config_param(CONFIG::BASECHAIN_GAS_PRICES).begin_parse();
+    slice gas_config = config_param(CONFIG::BASECHAIN_GAS_PRICES).begin_parse(); ;; todo: get from c7, not from config
     gas_config~skip_bits(8); ;;gas_flat_pfx tag
     (int flat_gas_limit, int flat_gas_price) = (gas_config~load_uint(64), gas_config~load_uint(64));
     gas_config~skip_bits(8); ;;gas_prices tag
