@@ -83,7 +83,6 @@
     .end_cell();
 
     send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
-    int internal_transfer_fwd_overhead = init_state_overhead();
     int fwd_count = forward_ton_amount ? 2 : 1; ;; second sending (forward) will be cheaper that first
 
     int jetton_wallet_gas_consumption = get_precompiled_gas_consumption();
@@ -94,7 +93,7 @@
     forward_ton_amount +
     ;; 3 messages: wal1->wal2,  wal2->owner, wal2->response
     ;; but last one is optional (it is ok if it fails)
-    internal_transfer_fwd_overhead +
+    init_state_overhead() + ;; additional fwd fees related to initstate in iternal_transfer
     fwd_count * fwd_fee +
     get_compute_price(MY_WORKCHAIN, send_transfer_gas_consumption) +
     get_compute_price(MY_WORKCHAIN, receive_transfer_gas_consumption) +

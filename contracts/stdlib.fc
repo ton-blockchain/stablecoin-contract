@@ -639,9 +639,9 @@ builder store_builder(builder to, builder from) asm "STBR";
 
 ;; CUSTOM:
 
-int get_compute_price(int workchain, int gas_used) asm "GETEXECUTIONPRICE";
-int get_storage_price(int workchain, int seconds, int bits, int cells) asm "GETSTORAGEPRICE";
-int get_forward_price(int workchain, int bits, int cells) asm "GETFORWARDPRICE";
+int get_compute_price(int workchain, int gas_used) asm(gas_used workchain) "GETEXECUTIONPRICE";
+int get_storage_price(int workchain, int seconds, int bits, int cells) asm(cells bits seconds workchain) "GETSTORAGEPRICE";
+int get_forward_price(int workchain, int bits, int cells) asm(cells bits workchain) "GETFORWARDPRICE";
 int get_precompiled_gas_consumption() asm "GETPRECOMPILEDGAS";
 
 ;; BASIC
