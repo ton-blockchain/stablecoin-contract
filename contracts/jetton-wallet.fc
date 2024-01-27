@@ -236,7 +236,7 @@
     in_msg_full_slice~load_coins(); ;; skip value
     in_msg_full_slice~skip_bits(1); ;; skip extracurrency collection
     in_msg_full_slice~load_coins(); ;; skip ihr_fee
-    int fwd_fee = muldiv(in_msg_full_slice~load_coins(), 3, 2); ;; we use message fwd_fee for estimation of forward_payload costs. todo: get 3/2 from C7
+    int fwd_fee = restore_total_forward_fee(in_msg_full_slice~load_coins()); ;; we use message fwd_fee for estimation of forward_payload costs.
 
     int op = in_msg_body~load_op();
 

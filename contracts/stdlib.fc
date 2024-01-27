@@ -644,6 +644,8 @@ int get_storage_price(int workchain, int seconds, int bits, int cells) asm(cells
 int get_forward_price(int workchain, int bits, int cells) asm(cells bits workchain) "GETFORWARDPRICE";
 int get_precompiled_gas_consumption() asm "GETPRECOMPILEDGAS";
 
+[slice, slice, slice, slice, slice, slice, slice] get_fee_cofigs() asm "UNPACKEDCONFIGTUPLE";
+
 ;; BASIC
 
 const int TRUE = -1;
