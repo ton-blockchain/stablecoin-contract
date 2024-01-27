@@ -856,8 +856,10 @@ cell create_token_onchain_metadata(cell content_dict) inline {
     return begin_cell().store_uint(0, 8).store_dict(content_dict).end_cell();
 }
 
-;; todo
+int get_precompiled_gas_consumption() inline {
+    return null(); ;; todo GETPRECOMPILEDGAS
+}
 
-int my_fixed_gas_consumption() inline {
-    return null();
+int my_storage_due() inline {
+    return 0; ;; todo
 }
