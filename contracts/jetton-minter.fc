@@ -88,7 +88,7 @@
         master_msg_slice~load_msg_addr(); ;; from_address
         master_msg_slice~load_msg_addr(); ;; response_address
         master_msg_slice~load_coins(); ;; forward_ton_amount
-        throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1); ;; either_forward_payload
+        check_either_forward_payload(master_msg_slice); ;; either_forward_payload
 
         send_to_jetton_wallet(to_address, jetton_wallet_code, ton_amount, master_msg, TRUE);
         save_data(total_supply + jetton_amount, admin_address, next_admin_address, jetton_wallet_code);
@@ -185,7 +185,7 @@
             master_msg_slice~load_msg_addr(); ;; response_address
             master_msg_slice~skip_maybe_ref(); ;; custom_payload
             master_msg_slice~load_coins(); ;; forward_ton_amount
-            throw_unless(error::invalid_message, slice_bits(master_msg_slice) >= 1); ;; either_forward_payload
+            check_either_forward_payload(master_msg_slice); ;; either_forward_payload
         } elseif (master_op == op::burn) {
             ;; see burn TL-B layout in jetton.tlb
             master_msg_slice~load_coins(); ;; jetton_amount
