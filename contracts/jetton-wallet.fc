@@ -17,7 +17,7 @@
   Note, status==0 means unlocked - user can freely transfer, burn and recieve jettons.
         (status & 1) bit means user can not send and burn jettons
         (status & 2) bit means user can not receive jettons.
-  Master (minter) smart-contract able to transfer, burn and mint jettons with any status.
+  Master (minter) smart-contract able to make outgoing actions (transfer, burn jettons) with any status.
 
   storage#_ status:uint4
             balance:Coins owner_address:MsgAddressInt
