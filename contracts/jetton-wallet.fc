@@ -1,8 +1,5 @@
 ;; Jetton Wallet Smart Contract
 
-{-
--}
-
 #pragma version >=0.4.3;
 
 #include "stdlib.fc";
@@ -14,9 +11,10 @@
 {-
   Storage
 
-  Note, status==0 means unlocked - user can freely transfer, burn and recieve jettons.
-        (status & 1) bit means user can not send and burn jettons
+  Note, status==0 means unlocked - user can freely transfer and recieve jettons (burn is forbidden by default).
+        (status & 1) bit means user can not send jettons
         (status & 2) bit means user can not receive jettons.
+        (status & 4) bit means user can burn jettons.
   Master (minter) smart-contract able to make outgoing actions (transfer, burn jettons) with any status.
 
   storage#_ status:uint4
@@ -181,8 +179,8 @@
     balance -= jetton_amount;
     int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
     throw_unless(error::not_owner, equal_slices_bits(owner_address, sender_address) | is_from_master);
-    int outgoing_transfers_unlocked = ((status & 1) == 0);
-    throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
+    int burn_unlocked = ((status & 4) == 4);
+    throw_unless(error::contract_locked, burn_unlocked | is_from_master);
     throw_unless(error::balance_error, balance >= 0);
 
     ;; see burn_notification TL-B layout in jetton.tlb
