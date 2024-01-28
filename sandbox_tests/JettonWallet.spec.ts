@@ -1,12 +1,13 @@
-import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot, SendMessageResult } from '@ton/sandbox';
-import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender, Dictionary } from '@ton/core';
+import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot, SendMessageResult, defaultConfigSeqno } from '@ton/sandbox';
+import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender, Dictionary, DictionaryValue } from '@ton/core';
 import { JettonWallet } from '../wrappers/JettonWallet';
-import { JettonMinter, jettonMinterConfigToCell, LockType } from '../wrappers/JettonMinter';
+import { jettonContentToCell, JettonMinter, jettonMinterConfigToCell, JettonMinterContent, LockType } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
 import {findTransactionRequired} from '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { randomAddress, getRandomTon, differentAddress, getRandomInt, testJettonTransfer, testJettonInternalTransfer, testJettonNotification, testJettonBurnNotification } from './utils';
 import { Op, Errors } from '../wrappers/JettonConstants';
+import { sha256 } from 'ton-crypto';
 
 /*
    These tests check compliance with the TEP-74 and TEP-89,
@@ -32,7 +33,7 @@ describe('JettonWallet', () => {
     let notDeployer:SandboxContract<TreasuryContract>;
     let jettonMinter:SandboxContract<JettonMinter>;
     let userWallet: (address: Address) => Promise<SandboxContract<JettonWallet>>;
-    let defaultContent:Cell;
+    let defaultContent: JettonMinterContent;
     let computedGeneric : (trans:Transaction) => TransactionComputeVm;
 
     let storageGeneric : (trans:Transaction) => TransactionStoragePhase;
@@ -108,7 +109,9 @@ describe('JettonWallet', () => {
         blockchain     = await Blockchain.create();
         deployer       = await blockchain.treasury('deployer');
         notDeployer    = await blockchain.treasury('notDeployer');
-        defaultContent = beginCell().endCell();
+        defaultContent = {
+                           uri: 'https://some_stablecoin.org/meta.json'
+                       };
 
         //jwallet_code is library
         const _libs = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Cell());
@@ -127,6 +130,7 @@ describe('JettonWallet', () => {
                      {
                        admin: deployer.address,
                        wallet_code: jwallet_code,
+                       jetton_content: jettonContentToCell(defaultContent)
                      },
                      minter_code));
         userWallet = async (address:Address) => blockchain.openContract(
@@ -293,24 +297,62 @@ describe('JettonWallet', () => {
         });
     });
 
-    // In this Jetton content is not changable
-    it.skip('minter admin can change content', async () => {
-        let newContent = beginCell().storeUint(1,1).endCell();
-        expect((await jettonMinter.getContent()).equals(defaultContent)).toBe(true);
-        let changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), newContent);
-        expect((await jettonMinter.getContent()).equals(newContent)).toBe(true);
-        changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), defaultContent);
-        expect((await jettonMinter.getContent()).equals(defaultContent)).toBe(true);
-    });
-    it.skip('not a minter admin can not change content', async () => {
-        let newContent = beginCell().storeUint(1,1).endCell();
-        let changeContent = await jettonMinter.sendChangeContent(notDeployer.getSender(), newContent);
-        expect((await jettonMinter.getContent()).equals(defaultContent)).toBe(true);
-        expect(changeContent.transactions).toHaveTransaction({
-            from: notDeployer.address,
-            to: jettonMinter.address,
-            aborted: true,
-            exitCode: 77, // error::unauthorized_change_content_request
+    describe('Content tests', () => {
+        let newContent : JettonMinterContent = {
+            uri: `https://some_super_l${Buffer.alloc(200, '0')}ng_stable.org/`
+        };
+        const snakeString : DictionaryValue<string> = {
+            serialize: function (src, builder)  {
+                builder.storeUint(0, 8).storeStringTail(src);
+            },
+            parse: function (src)  {
+                let outStr = src.loadStringTail();
+                if(outStr.charCodeAt(0) !== 0) {
+                    throw new Error("No snake prefix");
+                }
+                return outStr.substr(1);
+            }
+        };
+        const loadContent = (data: Cell) => {
+            const ds = data.beginParse();
+            expect(ds.loadUint(8)).toEqual(0);
+            const content = ds.loadDict(Dictionary.Keys.Buffer(32), snakeString);;
+            expect(ds.remainingBits == 0 && ds.remainingRefs == 0).toBe(true);
+            return content;
+        }
+
+        it('minter admin can change content', async () => {
+            const oldContent = loadContent(await jettonMinter.getContent());
+            // console.log(Buffer.from(oldContent.get(await sha256('uri'))!));
+            expect(oldContent.get(await sha256('uri'))! === defaultContent.uri).toBe(true);
+            expect(oldContent.get(await sha256('decimals'))! === "9").toBe(true);
+            let changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), newContent);
+            expect(changeContent.transactions).toHaveTransaction({
+                on: jettonMinter.address,
+                from: deployer.address,
+                op: Op.change_metadata_url,
+                success: true
+            });
+            let contentUpd  = loadContent(await jettonMinter.getContent());
+            expect(contentUpd.get(await sha256('uri'))! == newContent.uri).toBe(true);
+            // Update back;
+            changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), defaultContent);
+            contentUpd  = loadContent(await jettonMinter.getContent());
+            expect(oldContent.get(await sha256('uri'))! === defaultContent.uri).toBe(true);
+            expect(oldContent.get(await sha256('decimals'))! === "9").toBe(true);
+        });
+        it('not a minter admin can not change content', async () => {
+            const oldContent = loadContent(await jettonMinter.getContent());
+            let changeContent = await jettonMinter.sendChangeContent(notDeployer.getSender(), newContent);
+            expect(oldContent.get(await sha256('uri'))).toEqual(defaultContent.uri);
+            expect(oldContent.get(await sha256('decimals'))).toEqual("9");
+
+            expect(changeContent.transactions).toHaveTransaction({
+                from: notDeployer.address,
+                to: jettonMinter.address,
+                aborted: true,
+                exitCode: Errors.not_owner,
+            });
         });
     });
 
