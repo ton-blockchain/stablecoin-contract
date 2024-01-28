@@ -25,6 +25,7 @@ const op::change_admin = 3;
 const op::claim_admin = 4;
 const op::upgrade = 5;
 const op::call_to = 6;
+const op::change_metadata_uri = 8;
 
 ;; jetton-wallet
 
