@@ -32,6 +32,7 @@ int init_state_overhead() inline {
 
 ;;; Returns the third element of a triple tuple.
 forall A, B, C, D, E, F, G -> F tuple7_at_5([A, B, C, D, E, F, G] p) asm "5 INDEX";
+
 int restore_total_forward_fee(int in_message_forward_fee) inline {
     var configs = get_fee_cofigs();
     ;; 5th element - ConfigParam 25

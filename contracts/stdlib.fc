@@ -639,6 +639,17 @@ builder store_builder(builder to, builder from) asm "STBR";
 
 ;; CUSTOM:
 
+;; TVM UPGRADE 2023-07 https://docs.ton.org/learn/tvm-instructions/tvm-upgrade-2023-07
+;; In mainnet since 20 Dec 2023 https://t.me/tonblockchain/226
+
+;;; Retrieves code of smart-contract from c7
+cell my_code() asm "MYCODE";
+
+;;; Creates an output action and returns a fee for creating a message. Mode has the same effect as in the case of SENDRAWMSG
+int send_message(cell msg, int mode) impure asm "SENDMSG";
+
+;; TVM V6 https://github.com/ton-blockchain/ton/blob/testnet/doc/GlobalVersions.md#version-6
+
 int get_compute_price(int workchain, int gas_used) asm(gas_used workchain) "GETEXECUTIONPRICE";
 int get_storage_price(int workchain, int seconds, int bits, int cells) asm(cells bits seconds workchain) "GETSTORAGEPRICE";
 int get_forward_price(int workchain, int bits, int cells) asm(cells bits workchain) "GETFORWARDPRICE";
@@ -664,15 +675,6 @@ const int BASECHAIN = 0;
 builder store_bool(builder b, int value) inline {
     return b.store_int(value, 1);
 }
-
-;; TVM UPGRADE 2023-07 https://docs.ton.org/learn/tvm-instructions/tvm-upgrade-2023-07
-;; In mainnet since 20 Dec 2023 https://t.me/tonblockchain/226
-
-;;; Retrieves code of smart-contract from c7
-cell my_code() asm "MYCODE";
-
-;;; Creates an output action and returns a fee for creating a message. Mode has the same effect as in the case of SENDRAWMSG
-int send_message(cell msg, int mode) impure asm "SENDMSG";
 
 ;; ADDRESS NONE
 ;; addr_none$00 = MsgAddressExt; https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/block.tlb#L100
