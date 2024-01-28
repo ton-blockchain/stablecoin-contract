@@ -1,21 +1,26 @@
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, toNano } from '@ton/core';
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, Sender, SendMode, toNano } from '@ton/core';
 import { JettonWallet } from './JettonWallet';
 import { Op, Errors } from './JettonConstants';
 
 export type JettonMinterContent = {
-    type:0|1,
     uri:string
 };
-export type JettonMinterConfig = {admin: Address,  wallet_code: Cell};
+export type JettonMinterConfig = {
+    admin: Address,
+    wallet_code: Cell,
+    jetton_content: Cell | JettonMinterContent
+};
 export type JettonMinterConfigFull = {
     supply: bigint,
     admin: Address,
     //Makes no sense to update transfer admin. ...Or is it?
     transfer_admin: Address | null,
-    wallet_code: Cell
+    wallet_code: Cell,
+    jetton_content: Cell | JettonMinterContent
 }
 
 export type LockType = 'out' | 'in' | 'full' | 'unlock';
+
 
 export function jettonMinterConfigCellToConfig(config: Cell) : JettonMinterConfigFull {
     const sc = config.beginParse()
@@ -23,29 +28,35 @@ export function jettonMinterConfigCellToConfig(config: Cell) : JettonMinterConfi
         supply: sc.loadCoins(),
         admin: sc.loadAddress(),
         transfer_admin: sc.loadMaybeAddress(),
-        wallet_code: sc.loadRef()
+        wallet_code: sc.loadRef(),
+        jetton_content: sc.loadRef()
     }
 }
+
+
 export function jettonMinterConfigFullToCell(config: JettonMinterConfigFull): Cell {
+    const content = config.jetton_content instanceof Cell ? config.jetton_content : jettonContentToCell(config.jetton_content);
     return beginCell()
                 .storeCoins(config.supply)
                 .storeAddress(config.admin)
                 .storeAddress(config.transfer_admin)
                 .storeRef(config.wallet_code)
+                .storeRef(content)
            .endCell()
 }
 export function jettonMinterConfigToCell(config: JettonMinterConfig): Cell {
+    const content = config.jetton_content instanceof Cell ? config.jetton_content : jettonContentToCell(config.jetton_content);
     return  beginCell()
                 .storeCoins(0)
                 .storeAddress(config.admin)
                 .storeAddress(null) // Transfer admin address
                 .storeRef(config.wallet_code)
+                .storeRef(content)
             .endCell();
 }
 
 export function jettonContentToCell(content:JettonMinterContent) {
     return beginCell()
-                      .storeUint(content.type, 8)
                       .storeStringTail(content.uri) //Snake logic under the hood
            .endCell();
 }
@@ -143,13 +154,14 @@ export class JettonMinter implements Contract {
             value: toNano('0.1')
         })
     }
-    static changeContentMessage(content: Cell) {
-        return beginCell().storeUint(0x5773d1f5, 32).storeUint(0, 64) // op, queryId
-                          .storeRef(content)
+    static changeContentMessage(content: Cell | JettonMinterContent) {
+        const contentString = content instanceof Cell ? content.beginParse().loadStringTail() : content.uri;
+        return beginCell().storeUint(Op.change_metadata_url, 32).storeUint(0, 64) // op, queryId
+                .storeStringTail(contentString)
                .endCell();
     }
 
-    async sendChangeContent(provider: ContractProvider, via: Sender, content: Cell) {
+    async sendChangeContent(provider: ContractProvider, via: Sender, content: Cell | JettonMinterContent) {
         await provider.internal(via, {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: JettonMinter.changeContentMessage(content),
@@ -289,7 +301,7 @@ export class JettonMinter implements Contract {
             mintable,
             adminAddress,
             content,
-            walletCode
+            walletCode,
         };
     }
 
