@@ -1,6 +1,4 @@
-const int CONFIG::STORAGE_PRICES = 18;
-const int CONFIG::BASECHAIN_GAS_PRICES = 21;
-const int CONFIG::BASECHAIN_FWD_PRICES = 25;
+#include "workchain.fc";
 
 const JETTON_WALLET_BITS  = 1115;
 const JETTON_WALLET_CELLS = 3;
