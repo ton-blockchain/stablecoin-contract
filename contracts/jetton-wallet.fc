@@ -231,8 +231,7 @@
     in_msg_full_slice~load_coins(); ;; skip value
     in_msg_full_slice~skip_bits(1); ;; skip extracurrency collection
     in_msg_full_slice~load_coins(); ;; skip ihr_fee
-    (int sender_workchain, _) = parse_std_addr(sender_address);
-    int fwd_fee = get_original_fwd_fee(sender_workchain, in_msg_full_slice~load_coins()); ;; we use message fwd_fee for estimation of forward_payload costs.
+    int fwd_fee = get_original_fwd_fee(MY_WORKCHAIN, in_msg_full_slice~load_coins()); ;; we use message fwd_fee for estimation of forward_payload costs.
 
     int op = in_msg_body~load_op();
 
