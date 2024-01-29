@@ -79,7 +79,7 @@
     .store_statinit_ref_and_body_ref(state_init, msg_body)
     .end_cell();
 
-    send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
+    send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
     int fwd_count = forward_ton_amount ? 2 : 1; ;; second sending (forward) will be cheaper that first
 
     int jetton_wallet_gas_consumption = get_precompiled_gas_consumption();
@@ -92,8 +92,8 @@
     ;; but last one is optional (it is ok if it fails)
     init_state_overhead() + ;; additional fwd fees related to initstate in iternal_transfer
     fwd_count * fwd_fee +
-    get_compute_price(MY_WORKCHAIN, send_transfer_gas_consumption) +
-    get_compute_price(MY_WORKCHAIN, receive_transfer_gas_consumption) +
+    get_compute_fee(MY_WORKCHAIN, send_transfer_gas_consumption) +
+    get_compute_fee(MY_WORKCHAIN, receive_transfer_gas_consumption) +
     calculate_storage_fee(MIN_STORAGE_DURATION) );
     ;; This amount is calculated under two assumptions:
     ;; 1) 2 * gas_consumption + min_tons_for_storage strictly less than 2 * max_tx_gas_price
@@ -197,14 +197,14 @@
     .store_only_body_ref(msg_body)
     .end_cell();
 
-    send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
+    send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
     ;; NOTE we can not allow fails in action phase since in that case there will be
     ;; no bounce. Thus check and throw in computation phase.
     int jetton_wallet_gas_consumption = get_precompiled_gas_consumption();
     int send_burn_gas_consumption = null?(jetton_wallet_gas_consumption) ? SEND_BURN_GAS_CONSUMPTION : jetton_wallet_gas_consumption;
 
-    throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_compute_price(MY_WORKCHAIN, send_burn_gas_consumption) + get_compute_price(MY_WORKCHAIN, RECEIVE_BURN_GAS_CONSUMPTION));
+    throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_compute_fee(MY_WORKCHAIN, send_burn_gas_consumption) + get_compute_fee(MY_WORKCHAIN, RECEIVE_BURN_GAS_CONSUMPTION));
 
     save_data(status, balance, owner_address, jetton_master_address);
 }
@@ -231,7 +231,8 @@
     in_msg_full_slice~load_coins(); ;; skip value
     in_msg_full_slice~skip_bits(1); ;; skip extracurrency collection
     in_msg_full_slice~load_coins(); ;; skip ihr_fee
-    int fwd_fee = restore_total_forward_fee(in_msg_full_slice~load_coins()); ;; we use message fwd_fee for estimation of forward_payload costs.
+    (int sender_workchain, _) = parse_std_addr(sender_address);
+    int fwd_fee = get_original_fwd_fee(sender_workchain, in_msg_full_slice~load_coins()); ;; we use message fwd_fee for estimation of forward_payload costs.
 
     int op = in_msg_body~load_op();
 

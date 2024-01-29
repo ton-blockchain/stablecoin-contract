@@ -12,7 +12,8 @@ export type JettonMinterConfigFull = {
     admin: Address,
     //Makes no sense to update transfer admin. ...Or is it?
     transfer_admin: Address | null,
-    wallet_code: Cell
+    wallet_code: Cell,
+    metadata: JettonMinterContent
 }
 
 export type LockType = 'out' | 'in' | 'full' | 'unlock';
@@ -23,16 +24,19 @@ export function jettonMinterConfigCellToConfig(config: Cell) : JettonMinterConfi
         supply: sc.loadCoins(),
         admin: sc.loadAddress(),
         transfer_admin: sc.loadMaybeAddress(),
-        wallet_code: sc.loadRef()
+        wallet_code: sc.loadRef(),
+        metadata: {type:0, uri:"Not Implemented"} //TODO
     }
 }
+const OFFCHAIN_CONTENT_PREFIX = 0x01;
 export function jettonMinterConfigFullToCell(config: JettonMinterConfigFull): Cell {
     return beginCell()
                 .storeCoins(config.supply)
                 .storeAddress(config.admin)
                 .storeAddress(config.transfer_admin)
                 .storeRef(config.wallet_code)
-           .endCell()
+                .storeRef(jettonContentToCell(config.metadata))
+           .endCell();
 }
 export function jettonMinterConfigToCell(config: JettonMinterConfig): Cell {
     return  beginCell()
@@ -40,6 +44,7 @@ export function jettonMinterConfigToCell(config: JettonMinterConfig): Cell {
                 .storeAddress(config.admin)
                 .storeAddress(null) // Transfer admin address
                 .storeRef(config.wallet_code)
+                .storeRef(jettonContentToCell({type:0, uri:"Not set"}))
             .endCell();
 }
 
