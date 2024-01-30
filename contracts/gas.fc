@@ -16,12 +16,12 @@ const SEND_BURN_GAS_CONSUMPTION    = 9728;
 const RECEIVE_BURN_GAS_CONSUMPTION = 6542;
 
 ;;const MINT_GAS_CONSUMPTION = 8290;
-const PROVIDE_ADDRESS_GAS_CONSUMPTION = 309;
+;; const PROVIDE_ADDRESS_GAS_CONSUMPTION = 309;
 
 const MIN_STORAGE_DURATION = 5 * 365 * 24 * 3600; ;; 5 years
 
-int calculate_storage_fee(int duration) inline {
-    return get_storage_fee(MY_WORKCHAIN, duration, JETTON_WALLET_BITS, JETTON_WALLET_CELLS);
+int calculate_jetton_wallet_min_storage_fee() inline {
+    return get_storage_fee(MY_WORKCHAIN, MIN_STORAGE_DURATION, JETTON_WALLET_BITS, JETTON_WALLET_CELLS);
 }
 
 int forward_init_state_overhead() inline {
