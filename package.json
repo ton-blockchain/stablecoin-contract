@@ -15,7 +15,7 @@
         "@swc/core": "^1.2.177",
         "@ton/blueprint": "^0.12.1",
         "@ton/core": "^0.51.0",
-        "@ton/sandbox": "^0.15.0",
+        "@ton/sandbox": "0.16.0-tvmbeta.3",
         "@ton/test-utils": "^0.4.2",
         "@types/bn.js": "^5.1.0",
         "@types/chai": "^4.3.0",
@@ -39,7 +39,9 @@
         "typescript": "^4.5.4"
     },
     "overrides": {
-        "@ton-community/func-js-bin": "0.4.5-tvmbeta.1"
+        "@ton-community/func-js-bin": "0.4.5-tvmbeta.3",
+        "@ton-community/func-js": "0.6.3-tvmbeta.3",
+        "@ton-community/sandbox": "0.16.0-tvmbeta.3"
     },
     "prettier": {
         "printWidth": 180

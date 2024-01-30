@@ -1,8 +1,5 @@
 ;; Jetton Wallet Smart Contract
 
-{-
--}
-
 #pragma version >=0.4.3;
 
 #include "stdlib.fc";
@@ -14,8 +11,8 @@
 {-
   Storage
 
-  Note, status==0 means unlocked - user can freely transfer, burn and recieve jettons.
-        (status & 1) bit means user can not send and burn jettons
+  Note, status==0 means unlocked - user can freely transfer and recieve jettons (only admin can burn).
+        (status & 1) bit means user can not send jettons
         (status & 2) bit means user can not receive jettons.
   Master (minter) smart-contract able to make outgoing actions (transfer, burn jettons) with any status.
 
@@ -82,7 +79,7 @@
     .store_statinit_ref_and_body_ref(state_init, msg_body)
     .end_cell();
 
-    send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
+    send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
     int fwd_count = forward_ton_amount ? 2 : 1; ;; second sending (forward) will be cheaper that first
 
     int jetton_wallet_gas_consumption = get_precompiled_gas_consumption();
@@ -93,8 +90,11 @@
     forward_ton_amount +
     ;; 3 messages: wal1->wal2,  wal2->owner, wal2->response
     ;; but last one is optional (it is ok if it fails)
+    init_state_overhead() + ;; additional fwd fees related to initstate in iternal_transfer
     fwd_count * fwd_fee +
-    (get_execute_fees(send_transfer_gas_consumption, receive_transfer_gas_consumption) + calculate_storage_fee(MIN_STORAGE_DURATION)));
+    get_compute_fee(MY_WORKCHAIN, send_transfer_gas_consumption) +
+    get_compute_fee(MY_WORKCHAIN, receive_transfer_gas_consumption) +
+    calculate_storage_fee(MIN_STORAGE_DURATION) );
     ;; This amount is calculated under two assumptions:
     ;; 1) 2 * gas_consumption + min_tons_for_storage strictly less than 2 * max_tx_gas_price
     ;; 2) gas_consumption will not grow, which is true if ConfigParam21 gas_limit only decreases
@@ -177,9 +177,7 @@
 
     balance -= jetton_amount;
     int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
-    throw_unless(error::not_owner, equal_slices_bits(owner_address, sender_address) | is_from_master);
-    int outgoing_transfers_unlocked = ((status & 1) == 0);
-    throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
+    throw_unless(error::not_owner, is_from_master);
     throw_unless(error::balance_error, balance >= 0);
 
     ;; see burn_notification TL-B layout in jetton.tlb
@@ -199,14 +197,14 @@
     .store_only_body_ref(msg_body)
     .end_cell();
 
-    send_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
+    send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
     ;; NOTE we can not allow fails in action phase since in that case there will be
     ;; no bounce. Thus check and throw in computation phase.
     int jetton_wallet_gas_consumption = get_precompiled_gas_consumption();
     int send_burn_gas_consumption = null?(jetton_wallet_gas_consumption) ? SEND_BURN_GAS_CONSUMPTION : jetton_wallet_gas_consumption;
 
-    throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_execute_fees(send_burn_gas_consumption, RECEIVE_BURN_GAS_CONSUMPTION));
+    throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_compute_fee(MY_WORKCHAIN, send_burn_gas_consumption) + get_compute_fee(MY_WORKCHAIN, RECEIVE_BURN_GAS_CONSUMPTION));
 
     save_data(status, balance, owner_address, jetton_master_address);
 }
@@ -233,7 +231,7 @@
     in_msg_full_slice~load_coins(); ;; skip value
     in_msg_full_slice~skip_bits(1); ;; skip extracurrency collection
     in_msg_full_slice~load_coins(); ;; skip ihr_fee
-    int fwd_fee = muldiv(in_msg_full_slice~load_coins(), 3, 2); ;; we use message fwd_fee for estimation of forward_payload costs. todo: get 3/2 from C7
+    int fwd_fee = get_original_fwd_fee(MY_WORKCHAIN, in_msg_full_slice~load_coins()); ;; we use message fwd_fee for estimation of forward_payload costs.
 
     int op = in_msg_body~load_op();
 

@@ -14,6 +14,7 @@ export abstract class Op {
     static upgrade = 5;
     static call_to = 6;
     static top_up = 7;
+    static change_metadata_url = 8;
     static set_status = 100
 }
 
