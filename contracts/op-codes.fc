@@ -10,7 +10,7 @@ const op::burn_notification = 0x7bdd97de;
 const op::provide_wallet_address = 0x2c76b973;
 const op::take_wallet_address = 0xd1735400;
 
-const op::top_up = 7;
+const op::top_up = 0xd372158c;
 
 const error::invalid_op = 72;
 const error::wrong_op = 0xffff;
@@ -20,16 +20,16 @@ const error::wrong_workchain = 333;
 
 ;; jetton-minter
 
-const op::mint = 21;
-const op::change_admin = 3;
-const op::claim_admin = 4;
-const op::upgrade = 5;
-const op::call_to = 6;
-const op::change_metadata_uri = 8;
+const op::mint = 0x642b7d07;
+const op::change_admin = 0x6501f354;
+const op::claim_admin = 0xfb88e119;
+const op::upgrade = 0x2508d66a;
+const op::call_to = 0x235caf52;
+const op::change_metadata_uri = 0xcb862902;
 
 ;; jetton-wallet
 
-const op::set_status = 100;
+const op::set_status = 0xeed236d3;
 
 const error::contract_locked = 45;
 const error::balance_error = 47;
