@@ -65,7 +65,6 @@ describe('JettonWallet', () => {
                        fwd_amount: bigint,
                        storage_fee: bigint,
                        state_init?: bigint) => bigint;
-    let testBurnFees: (fees: bigint, amount: bigint, exp: boolean, custom?: Cell) => Promise<void>;
     let testSendFees: (fees: bigint,
                        fwd_amount: bigint,
                        fwd: Cell | null,
@@ -242,43 +241,6 @@ describe('JettonWallet', () => {
             return fwdTotal + send + recv + storage + 1n;
         }
 
-        testBurnFees = async (fees, amount, exp, custom_payload) => {
-            const deployerJettonWallet = await userWallet(deployer.address);
-            let initialJettonBalance   = await deployerJettonWallet.getJettonBalance();
-            let initialTotalSupply     = await jettonMinter.getTotalSupply();
-            const sendRes    = await deployerJettonWallet.sendBurn(deployer.getSender(), fees,
-                                                                   amount, deployer.address,
-                                                                   custom_payload || null);
-            if(exp) {
-                expect(sendRes.transactions).toHaveTransaction({
-                    on: deployerJettonWallet.address,
-                    from: deployer.address,
-                    op: Op.burn,
-                    success: true
-                });
-                // We expect burn to succedd, but no excess
-                expect(sendRes.transactions).toHaveTransaction({
-                    on: jettonMinter.address,
-                    from: deployerJettonWallet.address,
-                    op: Op.burn_notification,
-                    success: true
-                });
-
-                expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance - amount);
-                expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply - amount);
-            } else {
-                expect(sendRes.transactions).toHaveTransaction({
-                    on: deployerJettonWallet.address,
-                    from: deployer.address,
-                    op: Op.burn,
-                    success: false
-                });
-                expect(sendRes.transactions).not.toHaveTransaction({
-                    on: jettonMinter.address,
-                    from: deployer.address
-                });
-            }
-        }
         testSendFees = async (fees, fwd_amount, fwd_payload, custom_payload, exp) => {
             const deployerJettonWallet = await userWallet(deployer.address);
             let initialJettonBalance   = await deployerJettonWallet.getJettonBalance();
@@ -1175,7 +1137,7 @@ describe('JettonWallet', () => {
        const burnFwd    = estimateBurnFwd(burnAmount, null);
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
        // If custom payload impacts fee, this tx chain will fail
-       await testBurnFees(minimalFee, burnAmount, true, customPayload);
+       await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  customPayload, 0);
     });
     it('burn forward fee should be calculated from actual config values', async () => {
        let burnAmount   = toNano('0.01');
