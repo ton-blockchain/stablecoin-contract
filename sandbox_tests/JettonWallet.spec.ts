@@ -1823,7 +1823,7 @@ describe('JettonWallet', () => {
         it('minter should restore supply on internal_transfer bounce', async () => {
             const deployerJettonWallet    = await userWallet(deployer.address);
             const mintAmount = BigInt(getRandomInt(1000, 2000));
-            const mintMsg    = JettonMinter.mintMessage(deployer.address, mintAmount, null, null, null, toNano('0.1'), toNano('0.1'));
+            const mintMsg    = JettonMinter.mintMessage(deployer.address, mintAmount, null, null, null, toNano('0.1'), toNano('0.2'));
 
             const supplyBefore = await jettonMinter.getTotalSupply();
             const minterSmc = await blockchain.getContract(jettonMinter.address);
