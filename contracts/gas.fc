@@ -1,5 +1,7 @@
 #include "workchain.fc";
 
+const ONE_TON = 1000000000;
+
 const JETTON_WALLET_BITS  = 1115;
 const JETTON_WALLET_CELLS = 3;
 
@@ -15,9 +17,6 @@ const RECEIVE_TRANSFER_GAS_CONSUMPTION = 13064;
 const SEND_BURN_GAS_CONSUMPTION    = 9728;
 const RECEIVE_BURN_GAS_CONSUMPTION = 6542;
 
-;;const MINT_GAS_CONSUMPTION = 8290;
-;; const PROVIDE_ADDRESS_GAS_CONSUMPTION = 309;
-
 const MIN_STORAGE_DURATION = 5 * 365 * 24 * 3600; ;; 5 years
 
 int calculate_jetton_wallet_min_storage_fee() inline {
@@ -26,4 +25,36 @@ int calculate_jetton_wallet_min_storage_fee() inline {
 
 int forward_init_state_overhead() inline {
     return get_simple_forward_fee(MY_WORKCHAIN, JETTON_WALLET_INITSTATE_BITS, JETTON_WALLET_INITSTATE_CELLS);
+}
+
+() check_amount_is_enough_to_transfer(int msg_value, int forward_ton_amount, int fwd_fee) impure inline {
+    int fwd_count = forward_ton_amount ? 2 : 1; ;; second sending (forward) will be cheaper that first
+
+    int jetton_wallet_gas_consumption = get_precompiled_gas_consumption();
+    int send_transfer_gas_consumption = null?(jetton_wallet_gas_consumption) ? SEND_TRANSFER_GAS_CONSUMPTION : jetton_wallet_gas_consumption;
+    int receive_transfer_gas_consumption = null?(jetton_wallet_gas_consumption) ? RECEIVE_TRANSFER_GAS_CONSUMPTION : jetton_wallet_gas_consumption;
+
+    throw_unless(error::not_enough_gas, msg_value >
+    forward_ton_amount +
+    ;; 3 messages: wal1->wal2,  wal2->owner, wal2->response
+    ;; but last one is optional (it is ok if it fails)
+    fwd_count * fwd_fee +
+    forward_init_state_overhead() + ;; additional fwd fees related to initstate in iternal_transfer
+    get_compute_fee(MY_WORKCHAIN, send_transfer_gas_consumption) +
+    get_compute_fee(MY_WORKCHAIN, receive_transfer_gas_consumption) +
+    calculate_jetton_wallet_min_storage_fee() );
+    ;; This amount is calculated under two assumptions:
+    ;; 1) 2 * gas_consumption + min_tons_for_storage strictly less than 2 * max_tx_gas_price
+    ;; 2) gas_consumption will not grow, which is true if ConfigParam21 gas_limit only decreases
+    ;; universal message send fee calculation may be activated here
+    ;; by using this instead of fwd_fee
+    ;; msg_fwd_fee(to_wallet, msg_body, state_init, 15)
+    ;; and reading ConfigParam21 gas_limit
+}
+
+() check_amount_is_enough_to_burn(int msg_value, int fwd_fee) impure inline {
+    int jetton_wallet_gas_consumption = get_precompiled_gas_consumption();
+    int send_burn_gas_consumption = null?(jetton_wallet_gas_consumption) ? SEND_BURN_GAS_CONSUMPTION : jetton_wallet_gas_consumption;
+
+    throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_compute_fee(MY_WORKCHAIN, send_burn_gas_consumption) + get_compute_fee(MY_WORKCHAIN, RECEIVE_BURN_GAS_CONSUMPTION));
 }

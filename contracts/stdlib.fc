@@ -784,6 +784,15 @@ builder store_prefix_only_body(builder b) inline {
     .store_uint(0, MSG_ONLY_BODY_SIZE);
 }
 
+(slice, int) ~retrieve_fwd_fee(slice in_msg_full_slice) inline {
+    in_msg_full_slice~load_msg_addr(); ;; skip dst
+    in_msg_full_slice~load_coins(); ;; skip value
+    in_msg_full_slice~skip_bits(1); ;; skip extracurrency collection
+    in_msg_full_slice~load_coins(); ;; skip ihr_fee
+    int fwd_fee = in_msg_full_slice~load_coins();
+    return (in_msg_full_slice, fwd_fee);
+}
+
 ;; MSG BODY
 
 ;; According to the guideline, it is recommended to start the body of the internal message with uint32 op and uint64 query_id

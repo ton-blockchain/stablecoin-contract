@@ -35,7 +35,7 @@
 }
 
 () send_to_jetton_wallet(slice to_address, cell jetton_wallet_code, int ton_amount, cell master_msg, int need_state_init) impure inline {
-    raw_reserve(1000000000, RESERVE_REGULAR); ;; 1 TON
+    raw_reserve(ONE_TON, RESERVE_REGULAR); ;; reserve for storage fees
 
     cell state_init = calculate_jetton_wallet_state_init(to_address, my_address(), jetton_wallet_code);
     slice to_wallet_address = calculate_jetton_wallet_address(state_init);
@@ -72,12 +72,8 @@
         return ();
     }
     slice sender_address = in_msg_full_slice~load_msg_addr();
-    in_msg_full_slice~load_msg_addr(); ;; skip dst
-    in_msg_full_slice~load_coins(); ;; skip value
-    in_msg_full_slice~skip_bits(1); ;; skip extracurrency collection
-    in_msg_full_slice~load_coins(); ;; skip ihr_fee
-    int fwd_fee = get_original_fwd_fee(MY_WORKCHAIN, in_msg_full_slice~load_coins()); ;; we use message fwd_fee for estimation of forward_payload costs.
-
+    int fwd_fee_from_in_msg = in_msg_full_slice~retrieve_fwd_fee();
+    int fwd_fee = get_original_fwd_fee(MY_WORKCHAIN, fwd_fee_from_in_msg); ;; we use message fwd_fee for estimation of forward_payload costs.()); ;; we use message fwd_fee for estimation of forward_payload costs.
 
     (int op, int query_id) = in_msg_body~load_op_and_query_id();
 
@@ -101,16 +97,8 @@
         int forward_ton_amount = master_msg_slice~load_coins(); ;; forward_ton_amount
         check_either_forward_payload(master_msg_slice); ;; either_forward_payload
 
-        int fwd_count = forward_ton_amount ? 2 : 1; ;; second sending (forward) will be cheaper that first
-        throw_unless(error::not_enough_gas, msg_value >
-        forward_ton_amount +
-        ;; 3 messages: wal1->wal2,  wal2->owner, wal2->response
-        ;; but last one is optional (it is ok if it fails)
-        fwd_count * fwd_fee +
-        forward_init_state_overhead() + ;; additional fwd fees related to initstate in iternal_transfer
-        get_compute_fee(MY_WORKCHAIN, SEND_TRANSFER_GAS_CONSUMPTION) +
-        get_compute_fee(MY_WORKCHAIN, RECEIVE_TRANSFER_GAS_CONSUMPTION) +
-        calculate_jetton_wallet_min_storage_fee() );
+        ;; a little more than needed, it’s ok since it’s sent by the admin
+        check_amount_is_enough_to_transfer(ton_amount, forward_ton_amount, fwd_fee);
 
         send_to_jetton_wallet(to_address, jetton_wallet_code, ton_amount, master_msg, TRUE);
         save_data(total_supply + jetton_amount, admin_address, next_admin_address, jetton_wallet_code, metadata_uri);
@@ -208,16 +196,8 @@
             master_msg_slice~skip_maybe_ref(); ;; custom_payload
             int forward_ton_amount = master_msg_slice~load_coins(); ;; forward_ton_amount
 
-            int fwd_count = forward_ton_amount ? 3 : 2; ;; second sending (forward) will be cheaper that first
-            throw_unless(error::not_enough_gas, msg_value >
-            forward_ton_amount +
-            ;; 3 messages: wal1->wal2,  wal2->owner, wal2->response
-            ;; but last one is optional (it is ok if it fails)
-            fwd_count * fwd_fee +
-            forward_init_state_overhead() + ;; additional fwd fees related to initstate in iternal_transfer
-            2 * get_compute_fee(MY_WORKCHAIN, SEND_TRANSFER_GAS_CONSUMPTION) +
-            get_compute_fee(MY_WORKCHAIN, RECEIVE_TRANSFER_GAS_CONSUMPTION) +
-            calculate_jetton_wallet_min_storage_fee() );
+            ;; a little more than needed, it’s ok since it’s sent by the admin
+            check_amount_is_enough_to_transfer(ton_amount, forward_ton_amount, fwd_fee);
 
             check_either_forward_payload(master_msg_slice); ;; either_forward_payload
         } elseif (master_op == op::burn) {
@@ -226,6 +206,9 @@
             master_msg_slice~load_msg_addr(); ;; response_address
             master_msg_slice~skip_maybe_ref(); ;; custom_payload
             master_msg_slice.end_parse();
+
+            ;; a little more than needed, it’s ok since it’s sent by the admin
+            check_amount_is_enough_to_burn(ton_amount, fwd_fee);
 
             throw_unless(error::not_enough_gas, msg_value > 2 * fwd_fee + get_compute_fee(MY_WORKCHAIN, SEND_BURN_GAS_CONSUMPTION) + get_compute_fee(MY_WORKCHAIN, RECEIVE_BURN_GAS_CONSUMPTION));
 
