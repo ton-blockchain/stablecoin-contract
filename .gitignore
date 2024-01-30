@@ -6,4 +6,3 @@ node_modules
 .wget-hsts
 bin
 .DS_Store
-build/*

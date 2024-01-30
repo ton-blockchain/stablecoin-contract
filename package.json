@@ -6,10 +6,7 @@
         "build": "npx blueprint build",
         "test": "jest sandbox_tests",
         "deploy": "npx blueprint run",
-        "prettier": "npx prettier --write '{test,contracts,build}/**/*.{ts,js,json}'",
-        "build_legacy": "ts-node ./build/_build.ts",
-        "test_legacy": "mocha --exit test/**/*.spec.ts",
-        "deploy_legacy": "ts-node ./build/_deploy.ts"
+        "prettier": "npx prettier --write '{test,contracts,build}/**/*.{ts,js,json}'"
     },
     "devDependencies": {
         "@swc/core": "^1.2.177",
