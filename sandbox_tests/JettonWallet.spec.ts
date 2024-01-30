@@ -390,7 +390,7 @@ describe('JettonWallet', () => {
     // implementation detail
     it('should deploy', async () => {
         //await blockchain.setVerbosityForAddress(jettonMinter.address, {blockchainLogs:true, vmLogs: 'vm_logs'});
-        const deployResult = await jettonMinter.sendDeploy(deployer.getSender(), toNano('1'));
+        const deployResult = await jettonMinter.sendDeploy(deployer.getSender(), toNano('10'));
 
         expect(deployResult.transactions).toHaveTransaction({
             from: deployer.address,
