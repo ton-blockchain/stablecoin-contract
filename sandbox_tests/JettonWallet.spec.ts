@@ -7,7 +7,7 @@ import {findTransactionRequired} from '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { randomAddress, getRandomTon, differentAddress, getRandomInt, testJettonTransfer, testJettonInternalTransfer, testJettonNotification, testJettonBurnNotification } from './utils';
 import { Op, Errors } from '../wrappers/JettonConstants';
-import { calcStorageFee, collectCellStats, computeCellForwardFees, computeFwdFees, computeGasFee, computeMessageForwardFees, GasPrices, getGasPrices, getMsgPrices, getStoragePrices, MsgPrices, setGasPrice, setMsgPrices, setStoragePrices, StorageStats } from '../gasUtils';
+import { calcStorageFee, collectCellStats, computeCellForwardFees, computeFwdFees, computeFwdFeesVerbose, computeGasFee, computeMessageForwardFees, GasPrices, getGasPrices, getMsgPrices, getStoragePrices, MsgPrices, setGasPrice, setMsgPrices, setStoragePrices, StorageStats, StorageValue } from '../gasUtils';
 import { sha256 } from 'ton-crypto';
 
 /*
@@ -82,8 +82,11 @@ describe('JettonWallet', () => {
         blockchain     = await Blockchain.create();
         deployer       = await blockchain.treasury('deployer');
         notDeployer    = await blockchain.treasury('notDeployer');
+        walletStats    = new StorageStats(1115, 3);
         msgPrices      = getMsgPrices(blockchain.config, 0);
         gasPrices      = getGasPrices(blockchain.config, 0);
+        storagePrices  = getStoragePrices(blockchain.config);
+        storageDuration= 5 * 365 * 24 * 3600;
         stateInitStats = new StorageStats(931, 3);
         defaultContent = {
                            uri: 'https://some_stablecoin.org/meta.json'
@@ -574,14 +577,16 @@ describe('JettonWallet', () => {
 
         const deployerJettonWallet = await userWallet(deployer.address);
         const smc   = await blockchain.getContract(deployerJettonWallet.address);
-        walletStats = collectCellStats(beginCell().store(storeAccountStorage(smc.account.account!.storage)).endCell(), []);
-        console.log("Jetton wallet storage stats:", walletStats);
-        blockchain.now =  blockchain.now! + 5 * 365 * 24 * 3600;
+        const actualStats = collectCellStats(beginCell().store(storeAccountStorage(smc.account.account!.storage)).endCell(), []);
+        console.log("Jetton wallet actual storage stats:", actualStats);
+        expect(walletStats.cells).toBeGreaterThanOrEqual(actualStats.cells);
+        expect(walletStats.bits).toBeGreaterThanOrEqual(actualStats.bits);
+        console.log("Jetton estimated max storage stats:", walletStats);
+        blockchain.now =  blockchain.now! + storageDuration;
         const res = await deployerJettonWallet.sendBurn(deployer.getSender(), toNano('1'), 0n, null, null);
         const storagePhase = storageGeneric(res.transactions[1]);
-        console.log("Storage fees:", storagePhase.storageFeesCollected);
-        min_tons_for_storage = storagePhase.storageFeesCollected;
-
+        // min_tons_for_storage = storagePhase.storageFeesCollected;
+        min_tons_for_storage = calcStorageFee(storagePrices, walletStats, BigInt(storageDuration));
         await blockchain.loadFrom(prev);
     });
     it('wallet owner should be able to send jettons', async () => {
@@ -1033,11 +1038,10 @@ describe('JettonWallet', () => {
         await testSendFees(minimalFee, forwardAmount, forwardPayload, null, true);
 
         const oldConfig = blockchain.config;
-        const curPrices = getStoragePrices(oldConfig);
         const newPrices = {
-            ...curPrices,
-            bit_price_ps: curPrices.bit_price_ps * 10n,
-            cell_price_ps: curPrices.cell_price_ps * 10n
+            ...storagePrices,
+            bit_price_ps: storagePrices.bit_price_ps * 10n,
+            cell_price_ps: storagePrices.cell_price_ps * 10n
         };
 
         blockchain.setConfig(setStoragePrices(oldConfig, newPrices));
