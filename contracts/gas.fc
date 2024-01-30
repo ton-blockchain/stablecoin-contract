@@ -21,23 +21,9 @@ const PROVIDE_ADDRESS_GAS_CONSUMPTION = 309;
 const MIN_STORAGE_DURATION = 5 * 365 * 24 * 3600; ;; 5 years
 
 int calculate_storage_fee(int duration) inline {
-    return get_storage_price(MY_WORKCHAIN, duration, JETTON_WALLET_BITS, JETTON_WALLET_CELLS);
+    return get_storage_fee(MY_WORKCHAIN, duration, JETTON_WALLET_BITS, JETTON_WALLET_CELLS);
 }
 
 int init_state_overhead() inline {
-    return get_forward_price(MY_WORKCHAIN, JETTON_WALLET_INITSTATE_BITS, JETTON_WALLET_INITSTATE_CELLS);
-}
-
-;;; Returns the third element of a triple tuple.
-forall A, B, C, D, E, F, G -> F tuple7_at_5([A, B, C, D, E, F, G] p) asm "5 INDEX";
-
-int restore_total_forward_fee(int in_message_forward_fee) inline {
-    var configs = get_fee_cofigs();
-    ;; 5th element - ConfigParam 25
-    ;; msg_forward_prices#ea lump_price:uint64 bit_price:uint64 cell_price:uint64 ihr_price_factor:uint32 first_frac:uint16 next_frac:uint16 = MsgForwardPrices;
-    slice msg_forward_prices = configs.tuple7_at_5();
-    msg_forward_prices~skip_bits(8 + 64 + 64 + 64 + 32);
-    int first_frac = msg_forward_prices.preload_uint(16);
-    ;; https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/transaction.cpp#L2413
-    return muldiv(in_message_forward_fee, 65536, 65536 - first_frac);
+    return get_simple_forward_fee(MY_WORKCHAIN, JETTON_WALLET_INITSTATE_BITS, JETTON_WALLET_INITSTATE_CELLS);
 }

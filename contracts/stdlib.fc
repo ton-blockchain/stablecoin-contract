@@ -650,12 +650,17 @@ int send_message(cell msg, int mode) impure asm "SENDMSG";
 
 ;; TVM V6 https://github.com/ton-blockchain/ton/blob/testnet/doc/GlobalVersions.md#version-6
 
-int get_compute_price(int workchain, int gas_used) asm(gas_used workchain) "GETEXECUTIONPRICE";
-int get_storage_price(int workchain, int seconds, int bits, int cells) asm(cells bits seconds workchain) "GETSTORAGEPRICE";
-int get_forward_price(int workchain, int bits, int cells) asm(cells bits workchain) "GETFORWARDPRICE";
+int get_compute_fee(int workchain, int gas_used) asm(gas_used workchain) "GETGASFEE";
+int get_storage_fee(int workchain, int seconds, int bits, int cells) asm(cells bits seconds workchain) "GETSTORAGEFEE";
+int get_forward_fee(int workchain, int bits, int cells) asm(cells bits workchain) "GETFORWARDFEE";
 int get_precompiled_gas_consumption() asm "GETPRECOMPILEDGAS";
 
-[slice, slice, slice, slice, slice, slice, slice] get_fee_cofigs() asm "UNPACKEDCONFIGTUPLE";
+int get_simple_compute_fee(int workchain, int gas_used) asm(gas_used workchain) "GETGASFEESIMPLE";
+int get_simple_forward_fee(int workchain, int bits, int cells) asm(cells bits workchain) "GETFORWARDFEESIMPLE";
+int get_original_fwd_fee(int workchain, int fwd_fee) asm(fwd_fee workchain) "GETORIGINALFWDFEE";
+int my_storage_due() asm "DUEPAYMENT";
+
+tuple get_fee_cofigs() asm "UNPACKEDCONFIGTUPLE";
 
 ;; BASIC
 
@@ -863,8 +868,4 @@ const int RESERVE_BOUNCE_ON_ACTION_FAIL = 16;
 ;; On-chain content layout The first byte is 0x00 and the rest is key/value dictionary.
 cell create_token_onchain_metadata(cell content_dict) inline {
     return begin_cell().store_uint(0, 8).store_dict(content_dict).end_cell();
-}
-
-int my_storage_due() inline {
-    return 0; ;; todo
 }
