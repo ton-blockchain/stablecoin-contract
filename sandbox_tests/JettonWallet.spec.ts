@@ -1,12 +1,13 @@
-import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot, SendMessageResult } from '@ton/sandbox';
-import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender, Dictionary } from '@ton/core';
+import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot, SendMessageResult, defaultConfigSeqno, BlockchainTransaction } from '@ton/sandbox';
+import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender, Dictionary, DictionaryValue } from '@ton/core';
 import { JettonWallet } from '../wrappers/JettonWallet';
-import { JettonMinter, jettonMinterConfigToCell, LockType } from '../wrappers/JettonMinter';
+import { jettonContentToCell, JettonMinter, jettonMinterConfigToCell, JettonMinterContent, LockType } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
 import {findTransactionRequired} from '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { randomAddress, getRandomTon, differentAddress, getRandomInt, testJettonTransfer, testJettonInternalTransfer, testJettonNotification, testJettonBurnNotification } from './utils';
 import { Op, Errors } from '../wrappers/JettonConstants';
+import { sha256 } from 'ton-crypto';
 
 /*
    These tests check compliance with the TEP-74 and TEP-89,
@@ -32,11 +33,14 @@ describe('JettonWallet', () => {
     let notDeployer:SandboxContract<TreasuryContract>;
     let jettonMinter:SandboxContract<JettonMinter>;
     let userWallet: (address: Address) => Promise<SandboxContract<JettonWallet>>;
-    let defaultContent:Cell;
+    let defaultContent: JettonMinterContent;
     let computedGeneric : (trans:Transaction) => TransactionComputeVm;
 
     let storageGeneric : (trans:Transaction) => TransactionStoragePhase;
     let printTxGasStats: (name: string, trans: Transaction) => bigint;
+    let testAdminBurn: (ton_amount: bigint, burn_amount: bigint,
+                   burn_addr: Address, response: Address,
+                   custom_payload: Cell | null, exp: number) => Promise<Array<BlockchainTransaction>>;
 
     class StorageStats {
         bits: bigint;
@@ -108,7 +112,9 @@ describe('JettonWallet', () => {
         blockchain     = await Blockchain.create();
         deployer       = await blockchain.treasury('deployer');
         notDeployer    = await blockchain.treasury('notDeployer');
-        defaultContent = beginCell().endCell();
+        defaultContent = {
+                           uri: 'https://some_stablecoin.org/meta.json'
+                       };
 
         //jwallet_code is library
         const _libs = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Cell());
@@ -127,6 +133,7 @@ describe('JettonWallet', () => {
                      {
                        admin: deployer.address,
                        wallet_code: jwallet_code,
+                       jetton_content: jettonContentToCell(defaultContent)
                      },
                      minter_code));
         userWallet = async (address:Address) => blockchain.openContract(
@@ -157,6 +164,57 @@ describe('JettonWallet', () => {
             console.log(`${name} used ${txComputed.gasUsed} gas`);
             console.log(`${name} gas cost: ${txComputed.gasFees}`);
             return txComputed.gasUsed;
+        }
+        testAdminBurn = async (ton_amount, burn_amount, burn_addr, response_addr, cuntom_payload, exp) => {
+            const burnWallet = await userWallet(burn_addr);
+
+            const balanceBefore = await burnWallet.getJettonBalance();
+            const supplyBefore  = await jettonMinter.getTotalSupply();
+
+            const res = await jettonMinter.sendForceBurn(deployer.getSender(), burn_amount,
+                                                         burn_addr, deployer.address, ton_amount);
+            const burnTxs = [findTransactionRequired(res.transactions, {
+                on: burnWallet.address,
+                from: jettonMinter.address,
+                op: Op.burn,
+                value: ton_amount,
+                success: exp == 0,
+                exitCode: exp
+            })];
+
+            if(exp == 0) {
+                burnTxs.push(findTransactionRequired(res.transactions, {
+                    on: jettonMinter.address,
+                    from: burnWallet.address,
+                    op: Op.burn_notification,
+                    body: (x) => testJettonBurnNotification(x!, {
+                        amount: burn_amount,
+                        response_address: deployer.address
+                    }),
+                    success: true
+                }));
+                /*
+                expect(res.transactions).toHaveTransaction({
+                    on: deployer.address,
+                    from: jettonMinter.address,
+                    op: Op.excesses,
+                    success: true
+                });
+                */
+
+                expect(await burnWallet.getJettonBalance()).toEqual(balanceBefore - burn_amount);
+                expect(await jettonMinter.getTotalSupply()).toEqual(supplyBefore - burn_amount);
+            }
+            else {
+                expect(res.transactions).not.toHaveTransaction({
+                    on: jettonMinter.address,
+                    from: burnWallet.address,
+                    op: Op.burn_notification
+                });
+                expect(await burnWallet.getJettonBalance()).toEqual(balanceBefore);
+                expect(await jettonMinter.getTotalSupply()).toEqual(supplyBefore);
+            }
+            return burnTxs;
         }
     });
 
@@ -294,24 +352,62 @@ describe('JettonWallet', () => {
         });
     });
 
-    // In this Jetton content is not changable
-    it.skip('minter admin can change content', async () => {
-        let newContent = beginCell().storeUint(1,1).endCell();
-        expect((await jettonMinter.getContent()).equals(defaultContent)).toBe(true);
-        let changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), newContent);
-        expect((await jettonMinter.getContent()).equals(newContent)).toBe(true);
-        changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), defaultContent);
-        expect((await jettonMinter.getContent()).equals(defaultContent)).toBe(true);
-    });
-    it.skip('not a minter admin can not change content', async () => {
-        let newContent = beginCell().storeUint(1,1).endCell();
-        let changeContent = await jettonMinter.sendChangeContent(notDeployer.getSender(), newContent);
-        expect((await jettonMinter.getContent()).equals(defaultContent)).toBe(true);
-        expect(changeContent.transactions).toHaveTransaction({
-            from: notDeployer.address,
-            to: jettonMinter.address,
-            aborted: true,
-            exitCode: 77, // error::unauthorized_change_content_request
+    describe('Content tests', () => {
+        let newContent : JettonMinterContent = {
+            uri: `https://some_super_l${Buffer.alloc(200, '0')}ng_stable.org/`
+        };
+        const snakeString : DictionaryValue<string> = {
+            serialize: function (src, builder)  {
+                builder.storeUint(0, 8).storeStringTail(src);
+            },
+            parse: function (src)  {
+                let outStr = src.loadStringTail();
+                if(outStr.charCodeAt(0) !== 0) {
+                    throw new Error("No snake prefix");
+                }
+                return outStr.substr(1);
+            }
+        };
+        const loadContent = (data: Cell) => {
+            const ds = data.beginParse();
+            expect(ds.loadUint(8)).toEqual(0);
+            const content = ds.loadDict(Dictionary.Keys.Buffer(32), snakeString);;
+            expect(ds.remainingBits == 0 && ds.remainingRefs == 0).toBe(true);
+            return content;
+        }
+
+        it('minter admin can change content', async () => {
+            const oldContent = loadContent(await jettonMinter.getContent());
+            // console.log(Buffer.from(oldContent.get(await sha256('uri'))!));
+            expect(oldContent.get(await sha256('uri'))! === defaultContent.uri).toBe(true);
+            expect(oldContent.get(await sha256('decimals'))! === "9").toBe(true);
+            let changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), newContent);
+            expect(changeContent.transactions).toHaveTransaction({
+                on: jettonMinter.address,
+                from: deployer.address,
+                op: Op.change_metadata_url,
+                success: true
+            });
+            let contentUpd  = loadContent(await jettonMinter.getContent());
+            expect(contentUpd.get(await sha256('uri'))! == newContent.uri).toBe(true);
+            // Update back;
+            changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), defaultContent);
+            contentUpd  = loadContent(await jettonMinter.getContent());
+            expect(oldContent.get(await sha256('uri'))! === defaultContent.uri).toBe(true);
+            expect(oldContent.get(await sha256('decimals'))! === "9").toBe(true);
+        });
+        it('not a minter admin can not change content', async () => {
+            const oldContent = loadContent(await jettonMinter.getContent());
+            let changeContent = await jettonMinter.sendChangeContent(notDeployer.getSender(), newContent);
+            expect(oldContent.get(await sha256('uri'))).toEqual(defaultContent.uri);
+            expect(oldContent.get(await sha256('decimals'))).toEqual("9");
+
+            expect(changeContent.transactions).toHaveTransaction({
+                from: notDeployer.address,
+                to: jettonMinter.address,
+                aborted: true,
+                exitCode: Errors.not_owner,
+            });
         });
     });
 
@@ -723,38 +819,23 @@ describe('JettonWallet', () => {
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance);
     });
 
-    it('wallet owner should be able to burn jettons', async () => {
+    // Yeah, you got that right
+    // Wallet owner should not be able to burn it's jettons
+    it('wallet owner should not be able to burn jettons', async () => {
            const deployerJettonWallet = await userWallet(deployer.address);
             let initialJettonBalance = await deployerJettonWallet.getJettonBalance();
             let initialTotalSupply = await jettonMinter.getTotalSupply();
             let burnAmount = toNano('0.01');
             const sendResult = await deployerJettonWallet.sendBurn(deployer.getSender(), toNano('0.1'), // ton amount
                                  burnAmount, deployer.address, null); // amount, response address, custom payload
-            const burnReqTx  = findTransactionRequired(sendResult.transactions, {
-                on: deployerJettonWallet.address,
-                from: deployer.address,
-                op: Op.burn,
-                success: true
+            expect(sendResult.transactions).toHaveTransaction({
+               from: deployer.address,
+               to: deployerJettonWallet.address,
+               aborted: true,
+               exitCode: Errors.not_owner, //error::unauthorized_transfer
             });
-
-            printTxGasStats("Burn send transaction", burnReqTx);
-
-            const notificationTx = findTransactionRequired(sendResult.transactions, { //burn notification
-                from: deployerJettonWallet.address,
-                to: jettonMinter.address,
-                op: Op.burn_notification,
-                success: true
-            });
-            printTxGasStats("Burn notification transaction", notificationTx);
-
-            expect(sendResult.transactions).toHaveTransaction({ //excesses
-                from: jettonMinter.address,
-                to: deployer.address,
-                op: Op.excesses
-            });
-            expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance - burnAmount);
-            expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply - burnAmount);
-
+            expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance);
+            expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply);
     });
 
     it('not wallet owner should not be able to burn jettons', async () => {
@@ -774,21 +855,22 @@ describe('JettonWallet', () => {
               expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply);
     });
 
+    it('minter admin should be able to burn wallet jettons', async() => {
+        const burnAmount = BigInt(getRandomInt(100000, 200000));
+        const burnTxs    = await testAdminBurn(toNano('1'), burnAmount, deployer.address, deployer.address, null, 0);
+        printTxGasStats("Burn transaction", burnTxs[0]);
+        printTxGasStats("Burn notification transaction", burnTxs[1]);
+    });
     it('wallet owner can not burn more jettons than it has', async () => {
                 const deployerJettonWallet = await userWallet(deployer.address);
                 let initialJettonBalance = await deployerJettonWallet.getJettonBalance();
                 let initialTotalSupply = await jettonMinter.getTotalSupply();
                 let burnAmount = initialJettonBalance + 1n;
-                const sendResult = await deployerJettonWallet.sendBurn(deployer.getSender(), toNano('0.1'), // ton amount
-                                        burnAmount, deployer.address, null); // amount, response address, custom payload
-                expect(sendResult.transactions).toHaveTransaction({
-                     from: deployer.address,
-                     to: deployerJettonWallet.address,
-                     aborted: true,
-                     exitCode: Errors.balance_error, //error::not_enough_jettons
-                    });
-                expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance);
-                expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply);
+                let msgValue   = toNano('1');
+                await testAdminBurn(msgValue, burnAmount,
+                                    deployer.address, deployer.address,
+                                    null, Errors.balance_error);
+
     });
 
     it.skip('minimal burn message fee', async () => {
@@ -1160,7 +1242,8 @@ describe('JettonWallet', () => {
             expect(await deployerJettonWallet.getJettonBalance()).toEqual(balanceBefore)
         });
     });
-    it('out and full locked wallet should not be able to burn tokens', async () => {
+    // With admin only mode doesn't make sense anymore
+    it.skip('out and full locked wallet should not be able to burn tokens', async () => {
         const deployerJettonWallet = await userWallet(deployer.address);
         const statusBefore = await deployerJettonWallet.getWalletStatus();
 
@@ -1366,36 +1449,8 @@ describe('JettonWallet', () => {
         const notDeployerJettonWallet = await userWallet(notDeployer.address);
         const msgValue   = getRandomTon(10, 20);
         const burnAmount = BigInt(getRandomInt(1, 100));
-
-        const balanceBefore = await notDeployerJettonWallet.getJettonBalance();
-        const supplyBefore  = await jettonMinter.getTotalSupply();
-
-        const res = await jettonMinter.sendForceBurn(deployer.getSender(), burnAmount, notDeployer.address, deployer.address, msgValue);
-        expect(res.transactions).toHaveTransaction({
-            on: notDeployerJettonWallet.address,
-            from: jettonMinter.address,
-            op: Op.burn,
-            value: msgValue,
-            success: true,
-        });
-        expect(res.transactions).toHaveTransaction({
-            on: jettonMinter.address,
-            from: notDeployerJettonWallet.address,
-            op: Op.burn_notification,
-            body: (x) => testJettonBurnNotification(x!, {
-                amount: burnAmount,
-                response_address: deployer.address
-            })
-        });
-        expect(res.transactions).toHaveTransaction({
-            on: deployer.address,
-            from: jettonMinter.address,
-            op: Op.excesses,
-            success: true
-        });
-
-        expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(balanceBefore - burnAmount);
-        expect(await jettonMinter.getTotalSupply()).toEqual(supplyBefore - burnAmount);
+        await testAdminBurn(msgValue, burnAmount,
+                            notDeployer.address, deployer.address, null, 0);
     });
     it('not admin should not be able to force burn', async () => {
         const deployerJettonWallet    = await userWallet(deployer.address);
@@ -1434,18 +1489,9 @@ describe('JettonWallet', () => {
             const supplyBefore  = await jettonMinter.getTotalSupply();
             const msgValue   = getRandomTon(10, 20);
 
+            await testAdminBurn(msgValue, burnAmount,
+                                notDeployer.address, deployer.address, null, 0);
 
-            const res = await jettonMinter.sendForceBurn(deployer.getSender(), burnAmount, notDeployer.address, deployer.address, msgValue);
-
-            expect(res.transactions).toHaveTransaction({
-                on: notDeployerJettonWallet.address,
-                from: jettonMinter.address,
-                op: Op.burn,
-                success: true
-            });
-
-            expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(balanceBefore - burnAmount);
-            expect(await jettonMinter.getTotalSupply()).toEqual(supplyBefore - burnAmount);
         });
 
     });
@@ -1524,12 +1570,12 @@ describe('JettonWallet', () => {
             const balanceBefore        = await deployerJettonWallet.getJettonBalance();
             const burnAmount = BigInt(getRandomInt(100, 200));
 
-            const burnMsg = JettonWallet.burnMessage(burnAmount, deployer.address, null);
+            const burnMsg   = JettonWallet.burnMessage(burnAmount, deployer.address, null);
 
             const walletSmc = await blockchain.getContract(deployerJettonWallet.address);
 
             const res = walletSmc.receiveMessage(internal({
-                from: deployer.address,
+                from: jettonMinter.address,
                 to: deployerJettonWallet.address,
                 body: burnMsg,
                 value: toNano('1')
