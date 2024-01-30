@@ -111,7 +111,7 @@
         if (~ is_address_none(response_address)) {
             ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
             var msg = begin_cell()
-            .store_uint(NON_BOUNCEABLE, 6)
+            .store_msg_flags_and_address_none(NON_BOUNCEABLE)
             .store_slice(response_address) ;; dest
             .store_coins(0)
             .store_prefix_only_body()

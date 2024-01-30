@@ -24,6 +24,6 @@ int calculate_storage_fee(int duration) inline {
     return get_storage_fee(MY_WORKCHAIN, duration, JETTON_WALLET_BITS, JETTON_WALLET_CELLS);
 }
 
-int init_state_overhead() inline {
+int forward_init_state_overhead() inline {
     return get_simple_forward_fee(MY_WORKCHAIN, JETTON_WALLET_INITSTATE_BITS, JETTON_WALLET_INITSTATE_CELLS);
 }
