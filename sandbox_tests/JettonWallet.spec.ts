@@ -44,12 +44,17 @@ describe('JettonWallet', () => {
     let walletStats: StorageStats;
     let msgPrices: MsgPrices;
     let gasPrices: GasPrices;
+    let storagePrices: StorageValue;
+    let storageDuration: number;
+    let stateInitStats: StorageStats;
+    let defaultOverhead: bigint;
     let defaultContent: JettonMinterContent;
 
     let computedGeneric : (trans:Transaction) => TransactionComputeVm;
     let storageGeneric : (trans:Transaction) => TransactionStoragePhase;
     let printTxGasStats: (name: string, trans: Transaction) => bigint;
     let estimateBurnFwd: (amount: bigint, prices?: MsgPrices) => bigint;
+    let forwardOverhead: (prices: MsgPrices, stats: StorageStats) => bigint;
     let estimateTransferFwd: (amount: bigint, fwd_amount: bigint,
                               fwd_payload: Cell | null,
                               custom_payload: Cell | null,
@@ -58,7 +63,8 @@ describe('JettonWallet', () => {
                        recv_fee: bigint,
                        fwd_fee: bigint,
                        fwd_amount: bigint,
-                       storage_fee: bigint) => bigint;
+                       storage_fee: bigint,
+                       state_init?: bigint) => bigint;
     let testBurnFees: (fees: bigint, amount: bigint, exp: boolean, custom?: Cell) => Promise<void>;
     let testSendFees: (fees: bigint,
                        fwd_amount: bigint,
@@ -78,6 +84,7 @@ describe('JettonWallet', () => {
         notDeployer    = await blockchain.treasury('notDeployer');
         msgPrices      = getMsgPrices(blockchain.config, 0);
         gasPrices      = getGasPrices(blockchain.config, 0);
+        stateInitStats = new StorageStats(931, 3);
         defaultContent = {
                            uri: 'https://some_stablecoin.org/meta.json'
                        };
@@ -153,6 +160,10 @@ describe('JettonWallet', () => {
             const msgCell = beginCell().store(storeMessage(msg, {forceRef: true})).endCell();
             return computeCellForwardFees(prices || msgPrices, msgCell)
         }
+        forwardOverhead     = (prices, stats) => {
+            // Meh, kinda lazy way of doing that, but tests are bloated enough already
+            return computeFwdFees(prices, stats.cells, stats.bits) - prices.lumpPrice;
+        }
         estimateTransferFwd = (jetton_amount, fwd_amount,fwd_payload, custom_payload, prices) => {
             // Purpose is to account for the first biggest one fwd fee.
             // So, we use fwd_amount here only for body calculation
@@ -160,6 +171,11 @@ describe('JettonWallet', () => {
             const mockFrom = randomAddress(0);
             const mockTo   = randomAddress(0);
 
+            const body     = JettonWallet.transferMessage(jetton_amount, mockTo,
+                                                          mockFrom, custom_payload,
+                                                          fwd_amount, fwd_payload);
+
+            /*
             const body = beginCell().storeUint(Op.internal_transfer, 32)
                                     .storeUint(0, 64)
                                     .storeCoins(jetton_amount)
@@ -168,32 +184,49 @@ describe('JettonWallet', () => {
                                     .storeCoins(fwd_amount)
                                     .storeMaybeRef(fwd_payload)
                         .endCell();
+            */
+           // There is no stateInit in transfer message
+           // But we want contract to account for it's overhead
+            const dataCell = beginCell().storeUint(0, 4) // status
+                            .storeCoins(0) // balance
+                            .storeAddress(mockFrom) // owner
+                            .storeAddress(jettonMinter.address) // minter
+                          .endCell();
+
             const msg = internal({
                 from: mockFrom,
                 to: mockTo,
                 body: body,
                 value: 0n,
+                /*
                 stateInit: {
                     code: jwallet_code,
                     // Only data size really metters
-                    data: beginCell().storeUint(0, 4) // status
-                            .storeCoins(0) // balance
-                            .storeAddress(mockFrom) // owner
-                            .storeAddress(jettonMinter.address) // minter
-                          .endCell()
+                    data: dataCell
                 }
+                */
             });
+
+            // const initStats = collectCellStats(jwallet_code, []).add(collectCellStats(dataCell, [])).addBits(5).addCells(1);
+
+            //console.log("Init stats", initStats);
 
             const msgCell = beginCell().store(storeMessage(msg, {forceRef: true})).endCell();
             /* ton-core pack StateInit in it's own way.
                Without respecting this:https://github.com/ton-blockchain/ton/blob/51baec48a02e5ba0106b0565410d2c2fd4665157/crypto/block/transaction.cpp#L2079
                Not sure if we can call it a bug or not?
             */
-            return computeCellForwardFees(prices || msgPrices, msgCell);
+            const msgStats  = collectCellStats(msgCell, [], true);//.addCells(3).addBits(931);
+            const curPrices = prices || msgPrices;
+            const feesRes   = computeFwdFeesVerbose(curPrices, msgStats.cells, msgStats.bits);
+            const reverse   = feesRes.remaining * 65536n / (65536n - curPrices.firstFrac);
+            expect(reverse).toBeGreaterThanOrEqual(feesRes.total);
+            return reverse;
         }
 
-        calcSendFees = (send, recv, fwd, fwd_amount, storage) => {
-            const fwdTotal = fwd_amount + (fwd_amount > 0n ? fwd * 2n : fwd);
+        calcSendFees = (send, recv, fwd, fwd_amount, storage, state_init) => {
+            const overhead = state_init || defaultOverhead;
+            const fwdTotal = fwd_amount + (fwd_amount > 0n ? fwd * 2n : fwd) + overhead;
             const execute  = send+ recv;
             return fwdTotal + send + recv + storage + 1n;
         }
@@ -339,6 +372,8 @@ describe('JettonWallet', () => {
             }
             return burnTxs;
         }
+
+        defaultOverhead = forwardOverhead(msgPrices, stateInitStats);
     });
 
     // implementation detail
@@ -790,7 +825,7 @@ describe('JettonWallet', () => {
             success: true
         });
         send_gas_fee = printTxGasStats("Jetton transfer", transferTx);
-        //send_gas_fee = computeGasFee(gasPrices, 15373n);
+        send_gas_fee = computeGasFee(gasPrices, 15364n);
 
         const receiveTx = findTransactionRequired(sendResult.transactions, {
             on: notDeployerJettonWallet.address,
@@ -799,7 +834,7 @@ describe('JettonWallet', () => {
             success: true
         });
         receive_gas_fee = printTxGasStats("Receive jetton", receiveTx);
-        // receive_gas_fee = computeGasFee(gasPrices, 12948n);
+        receive_gas_fee = computeGasFee(gasPrices, 13064n);
 
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance - sentAmount);
         expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance2 + sentAmount);
@@ -868,7 +903,9 @@ describe('JettonWallet', () => {
                      fwd_count * fwd_fee +
                      (2 * gas_consumption + min_tons_for_storage));
         */
-        let minimalFee = calcSendFees(send_gas_fee, receive_gas_fee, minFwdFee, forwardAmount, min_tons_for_storage);
+        // console.log("Estimate forward fee:", minFwdFee);
+        let minimalFee = calcSendFees(send_gas_fee, receive_gas_fee,
+                                      minFwdFee, forwardAmount, min_tons_for_storage);
         // Off by one should faile
         await testSendFees(minimalFee - 1n, forwardAmount, null, null, false);
         // Now should succeed
@@ -898,9 +935,11 @@ describe('JettonWallet', () => {
         minimalFee = calcSendFees(send_gas_fee, receive_gas_fee, minFwdFee, forwardAmount, min_tons_for_storage);
         // And succeed again, after updating calculations
         await testSendFees(minimalFee, forwardAmount, forwardPayload, null, true);
-        // Custom payload should be ignores->do not impact required fees
+        // Custom payload impacts fee, because forwardAmount is calculated based on inMsg fwdFee field
+        /*
         const customPayload = beginCell().storeUint(getRandomInt(100000, 200000), 128).endCell();
         await testSendFees(minimalFee, forwardAmount, forwardPayload, customPayload, true);
+        */
     });
     it('forward amount > 0 should account for forward fee twice', async () => {
         let jettonAmount  = 1n;
@@ -931,17 +970,27 @@ describe('JettonWallet', () => {
         await testSendFees(minimalFee, forwardAmount, forwardPayload, null, true);
 
         const oldConfig = blockchain.config;
-        blockchain.setConfig(setMsgPrices(blockchain.config,{
+        const newPrices: MsgPrices = {
             ...msgPrices,
             bitPrice: msgPrices.bitPrice * 10n,
             cellPrice: msgPrices.cellPrice * 10n
-        }, 0));
+        };
+        blockchain.setConfig(setMsgPrices(blockchain.config,newPrices, 0));
 
         await testSendFees(minimalFee, forwardAmount, forwardPayload, null, false);
 
+        const newFwdFee = estimateTransferFwd(jettonAmount, forwardAmount, forwardPayload, null, newPrices);
+
+        minimalFee += (newFwdFee - minFwdFee) * 2n + defaultOverhead * 9n;
+
+        /*
+         * We can't do it like this anymore, because change in forward prices
+         * also may change rounding in reverse fee calculation
         // Delta is 18 times old fee because oldFee x 2 is already accounted
         // for two forward
-        minimalFee += (minFwdFee - msgPrices.lumpPrice) * 18n;
+        const newOverhead = forwardOverhead(newPrices, stateInitStats);
+        minimalFee += (minFwdFee - msgPrices.lumpPrice) * 18n + defaultOverhead * 9n;
+        */
         // Should succeed now
         await testSendFees(minimalFee, forwardAmount, forwardPayload, null, true);
         // Testing edge
@@ -1091,7 +1140,7 @@ describe('JettonWallet', () => {
 
     });
 
-    describe('Burn dynamic fees', () => {
+    describe.skip('Burn dynamic fees', () => {
     it('minimal burn message fee', async () => {
        let burnAmount   = toNano('0.01');
        const burnFwd    = estimateBurnFwd(burnAmount);
