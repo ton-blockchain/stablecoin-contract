@@ -53,7 +53,7 @@ describe('JettonWallet', () => {
     let computedGeneric : (trans:Transaction) => TransactionComputeVm;
     let storageGeneric : (trans:Transaction) => TransactionStoragePhase;
     let printTxGasStats: (name: string, trans: Transaction) => bigint;
-    let estimateBurnFwd: (amount: bigint, prices?: MsgPrices) => bigint;
+    let estimateBurnFwd: (amount: bigint, custom: Cell | null,  prices?: MsgPrices) => bigint;
     let forwardOverhead: (prices: MsgPrices, stats: StorageStats) => bigint;
     let estimateTransferFwd: (amount: bigint, fwd_amount: bigint,
                               fwd_payload: Cell | null,
@@ -142,17 +142,20 @@ describe('JettonWallet', () => {
             return txComputed.gasFees;
         }
 
-        estimateBurnFwd = (amount, prices) => {
+        estimateBurnFwd = (amount, custom, prices) => {
             const mockAddr = randomAddress(0);
             // I know tat since there is no custom payloads
             // we could have pre calculates storage stats in advace instead.
             // But for the reference won't hurt.
+            const body = JettonWallet.burnMessage(amount, mockAddr, custom);
+            /*
             const body = beginCell().storeUint(Op.burn, 32)
                                     .storeUint(0, 64)
                                     .storeCoins(amount)
                                     .storeAddress(mockAddr)
                                     .storeAddress(mockAddr)
                          .endCell();
+            */
             const msg = internal({
                 from: mockAddr,
                 to: jettonMinter.address,
@@ -160,8 +163,13 @@ describe('JettonWallet', () => {
                 body
             });
 
-            const msgCell = beginCell().store(storeMessage(msg, {forceRef: true})).endCell();
-            return computeCellForwardFees(prices || msgPrices, msgCell)
+            const msgCell   = beginCell().store(storeMessage(msg)).endCell();
+            const msgStats  = collectCellStats(msgCell,[], true);
+            const curPrices = prices || msgPrices;
+            const res       = computeFwdFeesVerbose(curPrices, msgStats.cells, msgStats.bits);
+            const reverse   = res.remaining * 65536n / (65536n - curPrices.firstFrac);
+            expect(reverse).toBeGreaterThanOrEqual(res.total);
+            return reverse;
         }
         forwardOverhead     = (prices, stats) => {
             // Meh, kinda lazy way of doing that, but tests are bloated enough already
@@ -1129,8 +1137,13 @@ describe('JettonWallet', () => {
     it('minter admin should be able to burn wallet jettons', async() => {
         const burnAmount = BigInt(getRandomInt(100000, 200000));
         const burnTxs    = await testAdminBurn(toNano('1'), burnAmount, deployer.address, deployer.address, null, 0);
-        printTxGasStats("Burn transaction", burnTxs[0]);
-        printTxGasStats("Burn notification transaction", burnTxs[1]);
+        const actualSent = printTxGasStats("Burn transaction", burnTxs[0]);
+        const actualRecv = printTxGasStats("Burn notification transaction", burnTxs[1]);
+        burn_gas_fee = computeGasFee(gasPrices, 9728n);
+        burn_notification_fee = computeGasFee(gasPrices, 6542n);
+
+        expect(burn_gas_fee).toBeGreaterThanOrEqual(actualSent);
+        expect(burn_notification_fee).toBeGreaterThanOrEqual(actualRecv);
     });
     it('wallet owner can not burn more jettons than it has', async () => {
                 const deployerJettonWallet = await userWallet(deployer.address);
@@ -1144,63 +1157,72 @@ describe('JettonWallet', () => {
 
     });
 
-    describe.skip('Burn dynamic fees', () => {
+    describe('Burn dynamic fees', () => {
     it('minimal burn message fee', async () => {
        let burnAmount   = toNano('0.01');
-       const burnFwd    = estimateBurnFwd(burnAmount);
-       let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee;
+       const burnFwd    = estimateBurnFwd(burnAmount, null);
+       let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
 
        // Off by one
-       await testBurnFees(minimalFee, burnAmount, false);
+       await testAdminBurn(minimalFee - 1n, burnAmount, notDeployer.address, deployer.address,  null, Errors.not_enough_gas);
        // Now should succeed
-       minimalFee += 1n;
-       await testBurnFees(minimalFee, burnAmount, true);
+       await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, 0);
     });
-    it('burn custom payload should not impact fees', async () => {
+    // Now custom payload does impacf forward fee, because it is calculated from input message fwdFee
+    it.skip('burn custom payload should not impact fees', async () => {
        let burnAmount   = toNano('0.01');
        const customPayload = beginCell().storeUint(getRandomInt(1000, 2000), 256).endCell();
-       const burnFwd    = estimateBurnFwd(burnAmount);
+       const burnFwd    = estimateBurnFwd(burnAmount, null);
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
        // If custom payload impacts fee, this tx chain will fail
        await testBurnFees(minimalFee, burnAmount, true, customPayload);
     });
     it('burn forward fee should be calculated from actual config values', async () => {
        let burnAmount   = toNano('0.01');
-       const burnFwd    = estimateBurnFwd(burnAmount);
+       let   burnFwd    = estimateBurnFwd(burnAmount, null);
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
        // Succeeds initally
-       await testBurnFees(minimalFee, burnAmount, true);
+       await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, 0);
 
        const oldConfig = blockchain.config;
-       blockchain.setConfig(setMsgPrices(blockchain.config,{
+       const newPrices: MsgPrices  = {
            ...msgPrices,
            bitPrice: msgPrices.bitPrice * 10n,
            cellPrice: msgPrices.cellPrice * 10n
-       }, 0));
+       }
+       blockchain.setConfig(setMsgPrices(blockchain.config,newPrices, 0));
        // Now fail
-       await testBurnFees(minimalFee, burnAmount, false);
-       minimalFee += (burnFwd - msgPrices.lumpPrice) * 9n;
+       await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, Errors.not_enough_gas);
+       const newFwd = estimateBurnFwd(burnAmount, null, newPrices);
+       minimalFee += newFwd - burnFwd;
+       // Can't do that due to reverse fee calculation rounding errors
+       //minimalFee += (burnFwd - msgPrices.lumpPrice) * 9n;
+
        // Success again
-       await testBurnFees(minimalFee, burnAmount, true);
+       await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, 0);
        // Check edge
 
-       await testBurnFees(minimalFee - 1n, burnAmount, false);
+       await testAdminBurn(minimalFee - 1n, burnAmount, notDeployer.address, deployer.address,  null, Errors.not_enough_gas);
        blockchain.setConfig(oldConfig);
     });
     it('burn gas fees should be calculated from actual config values', async () => {
        let burnAmount   = toNano('0.01');
-       const burnFwd    = estimateBurnFwd(burnAmount);
+       const burnFwd    = estimateBurnFwd(burnAmount, null);
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
        // Succeeds initally
-       await testBurnFees(minimalFee, burnAmount, true);
+       await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, 0);
        const oldConfig = blockchain.config;
        blockchain.setConfig(setGasPrice(oldConfig,{
            ...gasPrices,
            gas_price: gasPrices.gas_price * 3n
        }, 0));
-       await testBurnFees(minimalFee, burnAmount, false);
-       minimalFee += (burn_gas_fee - gasPrices.flat_gas_price) * 2n + (burn_notification_fee -gasPrices.flat_gas_price) * 2n;
-       await testBurnFees(minimalFee, burnAmount, true);
+       await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, Errors.not_enough_gas);
+
+       minimalFee += (burn_gas_fee - gasPrices.flat_gas_price) * 2n + (burn_notification_fee - gasPrices.flat_gas_price) * 2n;
+
+       await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, 0);
+       // Verify edge
+       await testAdminBurn(minimalFee - 1n, burnAmount, notDeployer.address, deployer.address,  null, Errors.not_enough_gas);
        blockchain.setConfig(oldConfig);
     });
     });
