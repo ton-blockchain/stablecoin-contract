@@ -47,9 +47,9 @@
     int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
     int outgoing_transfers_unlocked = ((status & 1) == 0);
     throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
-    balance -= jetton_amount;
-
     throw_unless(error::not_owner, equal_slices_bits(owner_address, sender_address) | is_from_master);
+
+    balance -= jetton_amount;
     throw_unless(error::balance_error, balance >= 0);
 
     cell state_init = calculate_jetton_wallet_state_init(to_owner_address, jetton_master_address, my_code());
