@@ -58,7 +58,7 @@ int forward_init_state_overhead() inline {
     addr_std$10 anycast:(Maybe Anycast) workchain_id:int8 address:bits256  = MsgAddressInt;
 -}
 int forward_owner_address_overhead() inline {
-    return get_simple_forward_fee(MY_WORKCHAIN, 3 + 8 + 256, 0);
+    return get_simple_forward_fee(MY_WORKCHAIN, 3 + 8 + 256, 1);
 }
 
 
