@@ -860,7 +860,7 @@ describe('JettonWallet', () => {
             success: true
         });
         receive_gas_fee = printTxGasStats("Receive jetton", receiveTx);
-        receive_gas_fee = computeGasFee(gasPrices, 13064n);
+        receive_gas_fee = computeGasFee(gasPrices, 10335n);
 
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance - sentAmount);
         expect(await notDeployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance2 + sentAmount);
