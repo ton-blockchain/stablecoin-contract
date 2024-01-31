@@ -1154,7 +1154,7 @@ describe('JettonWallet', () => {
         const actualSent   = printTxGasStats("Burn transaction", burnTxs[0]);
         const actualRecv   = printTxGasStats("Burn notification transaction", burnTxs[1]);
         burn_gas_fee = computeGasFee(gasPrices, 5649n);
-        burn_notification_fee = computeGasFee(gasPrices, 6752n + 266n);
+        burn_notification_fee = computeGasFee(gasPrices, 6752n /*+ 266n*/);
         expect(burn_gas_fee).toBeGreaterThanOrEqual(actualSent);
         expect(burn_notification_fee).toBeGreaterThanOrEqual(actualRecv);
     });
