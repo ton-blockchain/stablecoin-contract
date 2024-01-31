@@ -47,15 +47,52 @@
     int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
     int outgoing_transfers_unlocked = ((status & 1) == 0);
     throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
-    balance -= jetton_amount;
-
     throw_unless(error::not_owner, equal_slices_bits(owner_address, sender_address) | is_from_master);
-    throw_unless(error::balance_error, balance >= 0);
+
+    balance -= jetton_amount;
 
     cell state_init = calculate_jetton_wallet_state_init(to_owner_address, jetton_master_address, my_code());
     slice to_wallet_address = calculate_jetton_wallet_address(state_init);
     slice response_address = in_msg_body~load_msg_addr();
-    in_msg_body~skip_maybe_ref(); ;; custom_payload
+    cell custom_payload_cell = in_msg_body~load_maybe_ref();
+
+    int second_ton_amount = 0;
+    if (~ null?(custom_payload_cell)) { ;; second transfer
+        slice second_transfer_slice = custom_payload_cell.begin_parse();
+        second_ton_amount = second_transfer_slice~load_coins();
+        int second_jetton_amount = second_transfer_slice~load_coins();
+        slice second_to_owner_address = second_transfer_slice~load_msg_addr();
+        check_same_workchain(second_to_owner_address);
+        balance -= second_jetton_amount;
+        cell second_state_init = calculate_jetton_wallet_state_init(second_to_owner_address, jetton_master_address, my_code());
+        slice second_to_wallet_address = calculate_jetton_wallet_address(second_state_init);
+
+        ;; see internal TL-B layout in jetton.tlb
+        cell second_msg_body = begin_cell()
+        .store_op(op::internal_transfer)
+        .store_query_id(query_id)
+        .store_coins(second_jetton_amount)
+        .store_slice(owner_address)
+        .store_slice(response_address)
+        .store_coins(0) ;; forward_ton_amount
+        .store_bool(FALSE) ;; empty forward payload
+        .end_cell();
+
+        ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
+        cell second_msg = begin_cell()
+        .store_msg_flags_and_address_none(BOUNCEABLE)
+        .store_slice(second_to_wallet_address)
+        .store_coins(second_ton_amount)
+        .store_statinit_ref_and_body_ref(second_state_init, second_msg_body)
+        .end_cell();
+
+        check_amount_is_enough_to_transfer(second_ton_amount, 0, fwd_fee);
+
+        send_raw_message(second_msg, SEND_MODE_BOUNCE_ON_ACTION_FAIL);
+    }
+
+    throw_unless(error::balance_error, balance >= 0);
+
     int forward_ton_amount = in_msg_body~load_coins();
     check_either_forward_payload(in_msg_body);
     slice either_forward_payload = in_msg_body;
@@ -81,7 +118,7 @@
 
     send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
-    check_amount_is_enough_to_transfer(msg_value, forward_ton_amount, fwd_fee);
+    check_amount_is_enough_to_transfer(msg_value - second_ton_amount, forward_ton_amount, fwd_fee);
 
     save_data(status, balance, owner_address, jetton_master_address);
 }
