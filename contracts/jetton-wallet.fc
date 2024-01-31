@@ -79,9 +79,9 @@
     .store_statinit_ref_and_body_ref(state_init, msg_body)
     .end_cell();
 
-    send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
-
     check_amount_is_enough_to_transfer(msg_value, forward_ton_amount, fwd_fee);
+
+    send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
     save_data(status, balance, owner_address, jetton_master_address);
 }
@@ -147,7 +147,7 @@
     save_data(status, balance, owner_address, jetton_master_address);
 }
 
-() burn_jettons(slice in_msg_body, slice sender_address, int msg_value, int fwd_fee) impure inline_ref {
+() burn_jettons(slice in_msg_body, slice sender_address, int msg_value) impure inline_ref {
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
@@ -177,12 +177,9 @@
     .store_only_body_ref(msg_body)
     .end_cell();
 
+    check_amount_is_enough_to_burn(msg_value);
+
     send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
-
-    ;; NOTE we can not allow fails in action phase since in that case there will be
-    ;; no bounce. Thus check and throw in computation phase.
-
-    check_amount_is_enough_to_burn(msg_value, fwd_fee);
 
     save_data(status, balance, owner_address, jetton_master_address);
 }
@@ -224,7 +221,7 @@
 
     ;; burn
     if (op == op::burn) {
-        burn_jettons(in_msg_body, sender_address, msg_value, fwd_fee);
+        burn_jettons(in_msg_body, sender_address, msg_value);
         return ();
     }
 

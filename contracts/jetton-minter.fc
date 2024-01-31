@@ -206,7 +206,7 @@
             master_msg_slice~skip_maybe_ref(); ;; custom_payload
             master_msg_slice.end_parse();
 
-            check_amount_is_enough_to_burn(ton_amount, fwd_fee);
+            check_amount_is_enough_to_burn(ton_amount);
 
         } elseif (master_op == op::set_status) {
             master_msg_slice~load_uint(STATUS_SIZE); ;; status
