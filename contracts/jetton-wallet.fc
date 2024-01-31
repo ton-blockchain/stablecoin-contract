@@ -8,7 +8,7 @@
 #include "jetton-utils.fc";
 #include "gas.fc";
 
-const int EXTRA_TRANSFER_ALLOWED = 0;
+const int EXTRA_TRANSFER_ALLOWED = -1;
 
 {-
   Storage

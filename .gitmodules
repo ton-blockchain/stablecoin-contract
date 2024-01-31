@@ -1,0 +1,3 @@
+[submodule "third-party/w5"]
+	path = third-party/w5
+	url = https://github.com/tonkeeper/w5
