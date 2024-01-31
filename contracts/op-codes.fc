@@ -35,3 +35,7 @@ const error::contract_locked = 45;
 const error::balance_error = 47;
 const error::not_enough_gas = 48;
 const error::invalid_message = 49;
+
+;; jetton-wallet extra transfer
+const op::extra_transfer = 107;
+const error::unknown_custom_payload_tag = 210;
