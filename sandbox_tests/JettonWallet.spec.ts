@@ -8,7 +8,10 @@ import { compile } from '@ton/blueprint';
 import { randomAddress, getRandomTon, differentAddress, getRandomInt, testJettonTransfer, testJettonInternalTransfer, testJettonNotification, testJettonBurnNotification } from './utils';
 import { Op, Errors } from '../wrappers/JettonConstants';
 import { calcStorageFee, collectCellStats, computeCellForwardFees, computeFwdFees, computeFwdFeesVerbose, computeGasFee, computeMessageForwardFees, FullFees, GasPrices, getGasPrices, getMsgPrices, getStoragePrices, MsgPrices, setGasPrice, setMsgPrices, setStoragePrices, StorageStats, StorageValue } from '../gasUtils';
-import { sha256 } from 'ton-crypto';
+import { getSecureRandomBytes, KeyPair, keyPairFromSeed, sha256, sign } from "ton-crypto";
+import { WalletId, WalletV5 } from "../wrappers/wallet-v5";
+import { bufferToBigInt, createMsgInternal, validUntil } from "./w5/utils";
+import { ActionSendMsg, packActionsList } from "./w5/actions";
 
 /*
    These tests check compliance with the TEP-74 and TEP-89,
@@ -533,6 +536,126 @@ describe('JettonWallet', () => {
             success: false,
             aborted: true
         });
+    });
+
+    describe('Wallet-v5 gasless tests', () => {
+        let w5: SandboxContract<WalletV5>;
+        let walletId: bigint;
+        let w5Jwallet: SandboxContract<JettonWallet>;
+        let keypair: KeyPair;
+        let seqno: number;
+        let initialJettonBalance: bigint;
+
+        function createBody(actionsList: Cell) {
+            const payload = beginCell()
+                .storeUint(walletId, 80)
+                .storeUint(validUntil(), 32)
+                .storeUint(seqno, 32) // seqno
+                .storeSlice(actionsList.beginParse())
+                .endCell();
+
+            const signature = sign(payload.hash(), keypair.secretKey);
+            seqno++;
+            return beginCell()
+                .storeUint(bufferToBigInt(signature), 512)
+                .storeSlice(payload.beginParse())
+                .endCell();
+        }
+
+        beforeAll(async () => {
+            const w5Code = await compile('wallet_v5');
+
+            walletId = new WalletId({ networkGlobalId: -239, workChain: 0, subwalletNumber: 0 }).serialized;
+            keypair = keyPairFromSeed(await getSecureRandomBytes(32));
+            seqno = 0;
+
+            w5 = blockchain.openContract(
+              WalletV5.createFromConfig({
+                    walletId,
+                    seqno,
+                    publicKey: keypair.publicKey,
+                    extensions: Dictionary.empty(),
+                }, w5Code, 0));
+
+            const _deployer = await blockchain.treasury('_deployer');
+            await w5.sendDeploy(_deployer.getSender(), toNano('0.05'));
+
+            w5Jwallet = blockchain.openContract(
+              JettonWallet.createFromAddress(
+                await jettonMinter.getWalletAddress(w5.address)
+              ));
+
+            initialJettonBalance = toNano('1000');
+            await jettonMinter.sendMint(deployer.getSender(), w5.address, initialJettonBalance, null, null, null, toNano('0.05'), toNano('1'));
+        })
+
+        it('successful deploy and mint', async () => {
+            expect(await w5.getSeqno()).toEqual(seqno);
+            expect(await w5Jwallet.getJettonBalance()).toEqual(initialJettonBalance)
+        })
+
+        it('gasless transfer with service fee', async () => {
+            const service = await blockchain.treasury('service');
+
+            const feeReceiver = await blockchain.treasury('fee_receiver');
+
+            const serviceJwallet = blockchain.openContract(
+              JettonWallet.createFromAddress(
+                await jettonMinter.getWalletAddress(service.address)
+              ));
+            const feeReceiverJwallet = blockchain.openContract(
+              JettonWallet.createFromAddress(
+                await jettonMinter.getWalletAddress(feeReceiver.address)
+              ));
+
+            const jettonTransfer1 = JettonWallet.transferMessage(toNano('100'), service.address, service.address, null, 0n, null);
+            const jettonTransfer2 = JettonWallet.transferMessage(toNano('1'), feeReceiver.address, feeReceiver.address, null, 0n, null);
+
+            const msg1 = createMsgInternal({ dest: w5Jwallet.address, value: toNano('1'), body: jettonTransfer1 });
+            const msg2 = createMsgInternal({ dest: w5Jwallet.address, value: toNano('1'), body: jettonTransfer2 });
+
+            const actionsList = packActionsList([
+                new ActionSendMsg(1, msg1),
+                new ActionSendMsg(1, msg2)
+            ]);
+
+            const receipt = await w5.sendInternalSignedMessage(service.getSender(), {
+                value: toNano(3),
+                body: createBody(actionsList)
+            });
+
+            expect(receipt.transactions).toHaveTransaction({
+                from: service.address,
+                to: w5.address,
+                success: true
+            });
+
+            expect(receipt.transactions).toHaveTransaction({
+                from: w5.address,
+                to: w5Jwallet.address,
+                body: jettonTransfer1,
+                success: true
+            });
+
+            expect(receipt.transactions).toHaveTransaction({
+                from: w5.address,
+                to: w5Jwallet.address,
+                body: jettonTransfer2,
+                success: true
+            });
+
+            expect(receipt.transactions.length).toEqual(8);
+
+            expect(await serviceJwallet.getJettonBalance()).toEqual(toNano('100'));
+            expect(await feeReceiverJwallet.getJettonBalance()).toEqual(toNano('1'));
+
+            console.log("service -> w5 =", fromNano(receipt.transactions[0].totalFees.coins));
+            console.log("w5 -> w5Jwallet x2 =", fromNano(receipt.transactions[1].totalFees.coins));
+            console.log("w5Jwallet -> serviceJwallet | transfer =", fromNano(receipt.transactions[2].totalFees.coins));
+            console.log("w5Jwallet -> feeReceiverJwallet | transfer =", fromNano(receipt.transactions[3].totalFees.coins));
+            console.log("serviceJwallet | receive =", fromNano(receipt.transactions[4].totalFees.coins));
+            console.log("feeReceiverJwallet | receive =", fromNano(receipt.transactions[5].totalFees.coins));
+        })
     });
 
     describe('Content tests', () => {
