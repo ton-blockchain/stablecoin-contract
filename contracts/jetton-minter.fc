@@ -73,7 +73,7 @@
     }
     slice sender_address = in_msg_full_slice~load_msg_addr();
     int fwd_fee_from_in_msg = in_msg_full_slice~retrieve_fwd_fee();
-    int fwd_fee = get_original_fwd_fee(MY_WORKCHAIN, fwd_fee_from_in_msg); ;; we use message fwd_fee for estimation of forward_payload costs.()); ;; we use message fwd_fee for estimation of forward_payload costs.
+    int fwd_fee = get_original_fwd_fee(MY_WORKCHAIN, fwd_fee_from_in_msg); ;; we use message fwd_fee for estimation of forward_payload costs
 
     (int op, int query_id) = in_msg_body~load_op_and_query_id();
 
@@ -195,10 +195,10 @@
             master_msg_slice~load_msg_addr(); ;; response_address
             master_msg_slice~skip_maybe_ref(); ;; custom_payload
             int forward_ton_amount = master_msg_slice~load_coins(); ;; forward_ton_amount
+            check_either_forward_payload(master_msg_slice); ;; either_forward_payload
 
             check_amount_is_enough_to_transfer(ton_amount, forward_ton_amount, fwd_fee);
 
-            check_either_forward_payload(master_msg_slice); ;; either_forward_payload
         } elseif (master_op == op::burn) {
             ;; see burn TL-B layout in jetton.tlb
             master_msg_slice~load_coins(); ;; jetton_amount
