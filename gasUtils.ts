@@ -15,6 +15,7 @@ export type StorageValue = {
 
 
 export type MsgPrices = ReturnType<typeof configParseMsgPrices>;
+export type FullFees  = ReturnType<typeof computeFwdFeesVerbose>;
 
 export class StorageStats {
     bits: bigint;
