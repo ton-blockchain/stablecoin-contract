@@ -4,7 +4,7 @@
     "version": "0.1.0",
     "scripts": {
         "build": "npx blueprint build",
-        "test": "jest sandbox_tests",
+        "test": "jest",
         "deploy": "npx blueprint run",
         "prettier": "npx prettier --write '{test,contracts,build}/**/*.{ts,js,json}'"
     },
