@@ -8,14 +8,14 @@ export abstract class Op {
     
     static provide_wallet_address = 0x2c76b973;
     static take_wallet_address = 0xd1735400;
-    static mint = 21;
-    static change_admin = 3;
-    static claim_admin = 4;
-    static upgrade = 5;
-    static call_to = 6;
-    static top_up = 7;
-    static change_metadata_url = 8;
-    static set_status = 100
+    static mint = 0x642b7d07;
+    static change_admin = 0x6501f354;
+    static claim_admin = 0xfb88e119;
+    static upgrade = 0x2508d66a;
+    static call_to = 0x235caf52;
+    static top_up = 0xd372158c;
+    static change_metadata_url = 0xcb862902;
+    static set_status = 0xeed236d3;
 }
 
 export abstract class Errors {

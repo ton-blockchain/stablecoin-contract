@@ -15,7 +15,7 @@ const SEND_TRANSFER_GAS_CONSUMPTION    = 9219;
 const RECEIVE_TRANSFER_GAS_CONSUMPTION = 10355;
 
 const SEND_BURN_GAS_CONSUMPTION    = 5799;
-const RECEIVE_BURN_GAS_CONSUMPTION = 6752;
+const RECEIVE_BURN_GAS_CONSUMPTION = 6767;
 
 const MIN_STORAGE_DURATION = 5 * 365 * 24 * 3600; ;; 5 years
 
@@ -52,9 +52,19 @@ int forward_init_state_overhead() inline {
     ;; and reading ConfigParam21 gas_limit
 }
 
+
+{-
+    https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/block.tlb#L105
+    addr_std$10 anycast:(Maybe Anycast) workchain_id:int8 address:bits256  = MsgAddressInt;
+-}
+int forward_owner_address_overhead() inline {
+    return get_simple_forward_fee(MY_WORKCHAIN, 3 + 8 + 256, 0);
+}
+
+
 () check_amount_is_enough_to_burn(int msg_value, int fwd_fee) impure inline {
     int jetton_wallet_gas_consumption = get_precompiled_gas_consumption();
     int send_burn_gas_consumption = null?(jetton_wallet_gas_consumption) ? SEND_BURN_GAS_CONSUMPTION : jetton_wallet_gas_consumption;
 
-    throw_unless(error::not_enough_gas, msg_value > fwd_fee + get_compute_fee(MY_WORKCHAIN, send_burn_gas_consumption) + get_compute_fee(MY_WORKCHAIN, RECEIVE_BURN_GAS_CONSUMPTION));
+    throw_unless(error::not_enough_gas, msg_value > fwd_fee + forward_owner_address_overhead() + get_compute_fee(MY_WORKCHAIN, send_burn_gas_consumption) + get_compute_fee(MY_WORKCHAIN, RECEIVE_BURN_GAS_CONSUMPTION));
 }

@@ -1,30 +1,147 @@
+
+bool_false$0 = Bool;
+bool_true$1 = Bool;
+
+nothing$0 {X:Type} = Maybe X;
+just$1 {X:Type} value:X = Maybe X;
+
+
+left$0 {X:Type} {Y:Type} value:X = Either X Y;
+right$1 {X:Type} {Y:Type} value:Y = Either X Y;
+
+addr_none$00 = MsgAddressExt;
+addr_extern$01 len:(## 9) external_address:(bits len)
+             = MsgAddressExt;
+anycast_info$_ depth:(#<= 30) { depth >= 1 }
+   rewrite_pfx:(bits depth) = Anycast;
+addr_std$10 anycast:(Maybe Anycast)
+   workchain_id:int8 address:bits256  = MsgAddressInt;
+addr_var$11 anycast:(Maybe Anycast) addr_len:(## 9)
+   workchain_id:int32 address:(bits addr_len) = MsgAddressInt;
+_ _:MsgAddressInt = MsgAddress;
+_ _:MsgAddressExt = MsgAddress;
+
+var_uint$_ {n:#} len:(#< n) value:(uint (len * 8))
+         = VarUInteger n;
+var_int$_ {n:#} len:(#< n) value:(int (len * 8))
+        = VarInteger n;
+nanograms$_ amount:(VarUInteger 16) = Grams;
+
+_ grams:Grams = Coins;
+
+
+//=======================================================================
+// TEP - 74
 // https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
+
+transfer#0f8a7ea5
+  query_id:uint64
+  amount:Coins
+  destination:MsgAddress
+  response_destination:MsgAddress
+  custom_payload:(Maybe ^Cell)
+  forward_ton_amount:Coins
+  forward_payload:(Either Cell ^Cell)
+  = JettonMsg;
+
+burn#595f07bc
+  query_id:uint64
+  amount:Coins
+  response_destination:MsgAddress
+  custom_payload:(Maybe ^Cell)
+  = JettonMsg;
+
+transfer_notification#7362d09c
+  query_id:uint64
+  amount:(VarUInteger 16)
+  sender:MsgAddress
+  forward_payload:(Either Cell ^Cell)
+  = JettonOutMsg;
+
+// not JettonOutMsg since common
+excesses#553276db query_id:uint64 = InternalMsgBody;
+
+
+internal_transfer#178d4519
+  query_id:uint64 amount:(VarUInteger 16)
+  from:MsgAddress
+  response_address:MsgAddress
+  forward_ton_amount:(VarUInteger 16)
+  forward_payload:(Either Cell ^Cell)
+  = JettonInOutMsg;
+
+burn_notification#7bdd97de
+  query_id:uint64
+  amount:(VarUInteger 16)
+  sender:MsgAddress
+  response_destination:MsgAddress
+  = JettonMinterMsg;
+
+_ _:JettonMsg = InternalMsgBody;
+_ _:JettonOutMsg = InternalMsgBody;
+_ _:JettonInOutMsg = InternalMsgBody;
+
+//=======================================================================
+// TEP - 89
 // https://github.com/ton-blockchain/TEPs/blob/master/text/0089-jetton-wallet-discovery.md
 
-transfer#f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
-                   response_destination:MsgAddress custom_payload:(Maybe ^Cell)
-                   forward_ton_amount:(VarUInteger 16) forward_payload:(Either Cell ^Cell)
-                   = InternalMsgBody;
-internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16) from:MsgAddress
-                             response_address:MsgAddress
-                             forward_ton_amount:(VarUInteger 16)
-                             forward_payload:(Either Cell ^Cell)
-                             = InternalMsgBody;
+provide_wallet_address#2c76b973
+  query_id:uint64
+  owner_address:MsgAddress
+  include_address:Bool
+  = JettonMinterMsg;
 
-transfer_notification#7362d09c query_id:uint64 amount:(VarUInteger 16)
-                                 sender:MsgAddress forward_payload:(Either Cell ^Cell)
-                                 = InternalMsgBody;
+take_wallet_address#d1735400
+  query_id:uint64
+  wallet_address:MsgAddress
+  owner_address:(Maybe ^MsgAddress)
+  = JettonMinterOutMsg;
 
-burn#595f07bc query_id:uint64 amount:(VarUInteger 16)
-                response_destination:MsgAddress custom_payload:(Maybe ^Cell)
-                = InternalMsgBody;
 
-burn_notification#7bdd97de query_id:uint64 amount:(VarUInteger 16)
-                     sender:MsgAddress response_destination:MsgAddress
-                     = InternalMsgBody;
+_ _:JettonMinterMsg = InternalMsgBody;
+_ _:JettonMinterOutMsg = InternalMsgBody;
 
-excesses#d53276db query_id:uint64 = InternalMsgBody;
+//=======================================================================
+// Stable
 
-provide_wallet_address#2c76b973 query_id:uint64 owner_address:MsgAddress include_address:Bool = InternalMsgBody;
+// not JettonMsg since common
+top_up#d372158c
+  query_id:uint64
+  = InternalMsgBody;
 
-take_wallet_address#d1735400 query_id:uint64 wallet_address:MsgAddress owner_address:(Maybe ^MsgAddress) = InternalMsgBody;
+set_status#eed236d3
+  query_id:uint64
+  status:uint4
+  = JettonMsg;
+
+mint#642b7d07
+  query_id:uint64
+  to_address:MsgAddressInt
+  ton_amount:Coins
+  master_msg:JettonInOutMsg
+  = JettonMinterMsg;
+
+change_admin#6501f354
+  query_id:uint64
+  new_admin_address:MsgAddress
+  = JettonMinterMsg;
+
+claim_admin#fb88e119
+  query_id:uint64
+  = JettonMinterMsg;
+
+call_to#235caf52
+  query_id:uint64
+  to_address:MsgAddressInt
+  ton_amount:Coins
+  master_msg:JettonMsg
+  = JettonMinterMsg;
+
+upgrade#2508d66a
+  new_data:^Cell
+  new_code:^Cell
+  = JettonMinterMsg;
+
+change_metadata_uri#cb862902
+  metadata:Cell
+  = JettonMinterMsg;
