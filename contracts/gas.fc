@@ -19,8 +19,8 @@ const RECEIVE_BURN_GAS_CONSUMPTION = 6767;
 
 const MIN_STORAGE_DURATION = 5 * 365 * 24 * 3600; ;; 5 years
 
-const BURN_NOTIFICATION_BITS = 0; ;; todo
-const BURN_NOTIFICATION_CELLS = 0; ;; todo
+const BURN_NOTIFICATION_BITS = 754; ;; 32+64+124+267+267
+const BURN_NOTIFICATION_CELLS = 1; ;; body always in ref
 
 int calculate_jetton_wallet_min_storage_fee() inline {
     return get_storage_fee(MY_WORKCHAIN, MIN_STORAGE_DURATION, JETTON_WALLET_BITS, JETTON_WALLET_CELLS);
