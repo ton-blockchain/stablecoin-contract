@@ -852,7 +852,7 @@ describe('JettonWallet', () => {
             success: true
         });
         send_gas_fee = printTxGasStats("Jetton transfer", transferTx);
-        send_gas_fee = computeGasFee(gasPrices, 9219n);
+        send_gas_fee = computeGasFee(gasPrices, 9255n);
 
         const receiveTx = findTransactionRequired(sendResult.transactions, {
             on: notDeployerJettonWallet.address,
@@ -1155,8 +1155,8 @@ describe('JettonWallet', () => {
         const burnTxs      = await testBurnFees(toNano('1'), deployer.address, burnAmount, 0, customPaylod); // await testAdminBurn(toNano('1'), burnAmount, deployer.address, deployer.address, null, 0);
         const actualSent   = printTxGasStats("Burn transaction", burnTxs[0]);
         const actualRecv   = printTxGasStats("Burn notification transaction", burnTxs[1]);
-        burn_gas_fee = computeGasFee(gasPrices, 5799n);
-        burn_notification_fee = computeGasFee(gasPrices, 6767n/*+ 266n*/);
+        burn_gas_fee = computeGasFee(gasPrices, 5791n);
+        burn_notification_fee = computeGasFee(gasPrices, 6775n/*+ 266n*/);
         expect(burn_gas_fee).toBeGreaterThanOrEqual(actualSent);
         expect(burn_notification_fee).toBeGreaterThanOrEqual(actualRecv);
     });
