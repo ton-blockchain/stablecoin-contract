@@ -1,3 +1,6 @@
+//=======================================================================
+// BASIC
+// https://github.com/ton-blockchain/ton/blob/master/crypto/block/block.tlb
 
 bool_false$0 = Bool;
 bool_true$1 = Bool;
@@ -59,7 +62,7 @@ transfer_notification#7362d09c
   = JettonOutMsg;
 
 // not JettonOutMsg since common
-excesses#553276db query_id:uint64 = InternalMsgBody;
+excesses#d53276db query_id:uint64 = InternalMsgBody;
 
 
 internal_transfer#178d4519
@@ -104,7 +107,6 @@ _ _:JettonMinterOutMsg = InternalMsgBody;
 //=======================================================================
 // Stable
 
-// not JettonMsg since common
 top_up#d372158c
   query_id:uint64
   = InternalMsgBody;
