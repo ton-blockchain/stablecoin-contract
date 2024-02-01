@@ -22,7 +22,6 @@ import { sha256 } from 'ton-crypto';
 
 //jetton params
 
-//let fwd_fee = 1804014n, gas_consumption = 15000000n, min_tons_for_storage = 10000000n;
 
 let send_gas_fee: bigint;
 let send_fwd_fee: bigint;
@@ -30,7 +29,6 @@ let receive_gas_fee: bigint;
 let burn_gas_fee: bigint;
 let burn_notification_fee: bigint;
 let min_tons_for_storage: bigint;
-//let fwd_fee = 1804014n, gas_consumption = 14000000n, min_tons_for_storage = 10000000n;
 
 describe('JettonWallet', () => {
     let jwallet_code_raw = new Cell(); // true code
@@ -147,25 +145,6 @@ describe('JettonWallet', () => {
         estimateBurnFwd = (prices) => {
             const curPrices = prices || msgPrices;
             return computeFwdFees(curPrices, 1n, 754n)
-            // const mockAddr = randomAddress(0);
-            // I know tat since there is no custom payloads
-            // we could have pre calculates storage stats in advace instead.
-            // But for the reference won't hurt.
-            // const body = JettonWallet.burnMessage(amount, mockAddr, custom);
-            /*
-            const body = beginCell().storeUint(Op.burn, 32)
-                                    .storeUint(0, 64)
-                                    .storeCoins(amount)
-                                    .storeAddress(mockAddr)
-                                    .storeAddress(mockAddr)
-                         .endCell();
-            */
-
-            // const res       = estimateBodyFee(body, false, curPrices);
-            // const notificationOverhead = forwardOverhead(curPrices, new StorageStats(3 + 8 + 256, 0));
-            // const reverse   = res.remaining * 65536n / (65536n - curPrices.firstFrac);
-            // expect(reverse).toBeGreaterThanOrEqual(res.total);
-            // return reverse + notificationOverhead;
         }
         forwardOverhead     = (prices, stats) => {
             // Meh, kinda lazy way of doing that, but tests are bloated enough already
@@ -195,30 +174,6 @@ describe('JettonWallet', () => {
                                                           fwd_amount, fwd_payload);
 
             const curPrices = prices || msgPrices;
-            /*
-            const body = beginCell().storeUint(Op.internal_transfer, 32)
-                                    .storeUint(0, 64)
-                                    .storeCoins(jetton_amount)
-                                    .storeAddress(mockFrom)
-                                    .storeAddress(mockTo)
-                                    .storeCoins(fwd_amount)
-                                    .storeMaybeRef(fwd_payload)
-                        .endCell();
-            */
-           // There is no stateInit in transfer message
-           // But we want contract to account for it's overhead
-
-            // const initStats = collectCellStats(jwallet_code, []).add(collectCellStats(dataCell, [])).addBits(5).addCells(1);
-
-            //console.log("Init stats", initStats);
-
-            //const msgCell = beginCell().store(storeMessage(msg, {forceRef: true})).endCell();
-            /* ton-core pack StateInit in it's own way.
-               Without respecting this:https://github.com/ton-blockchain/ton/blob/51baec48a02e5ba0106b0565410d2c2fd4665157/crypto/block/transaction.cpp#L2079
-               Not sure if we can call it a bug or not?
-            */
-            //const msgStats  = collectCellStats(msgCell, [], true);//.addCells(3).addBits(931);
-
             const feesRes   = estimateBodyFee(body, true, curPrices);
             const reverse   = feesRes.remaining * 65536n / (65536n - curPrices.firstFrac);
             expect(reverse).toBeGreaterThanOrEqual(feesRes.total);
@@ -246,10 +201,6 @@ describe('JettonWallet', () => {
                 forwardFee: estimateBodyFee(burnBody, false,prices || msgPrices).remaining,
                 body: burnBody,
             }));
-                /*await burnWallet.sendBurn(deployer.getSender(), fees,
-                                                                   amount, deployer.address,
-                                                                   custom_payload || null);
-                                                                   */
             if(exp == 0) {
                 burnTxs.push(findTransactionRequired(sendRes.transactions, {
                     on: burnWallet.address,
@@ -319,7 +270,7 @@ describe('JettonWallet', () => {
                             }
                             return x!.beginParse().preloadRef().equals(fwd_payload);
                         },
-                        // success: true
+                        // We do not test for success, because receiving contract would be uninitialized
                     });
                 }
                 expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance - jettonAmount);
@@ -459,7 +410,6 @@ describe('JettonWallet', () => {
 
     // implementation detail
     it('should deploy', async () => {
-        //await blockchain.setVerbosityForAddress(jettonMinter.address, {blockchainLogs:true, vmLogs: 'vm_logs'});
         const deployResult = await jettonMinter.sendDeploy(deployer.getSender(), toNano('10'));
 
         expect(deployResult.transactions).toHaveTransaction({
@@ -498,8 +448,6 @@ describe('JettonWallet', () => {
         });
 		*/
 
-        // const jettonSmc = await blockchain.getContract(deployerJettonWallet.address);
-        // jettonSmc.setVerbosity({print: true, blockchainLogs: true, vmLogs: 'vm_logs_location', debugLogs: true});
         expect(await deployerJettonWallet.getJettonBalance()).toEqual(initialJettonBalance);
         expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply + initialJettonBalance);
         initialTotalSupply += initialJettonBalance;
@@ -617,7 +565,6 @@ describe('JettonWallet', () => {
 
         it('minter admin can change content', async () => {
             const oldContent = loadContent(await jettonMinter.getContent());
-            // console.log(Buffer.from(oldContent.get(await sha256('uri'))!));
             expect(oldContent.get(await sha256('uri'))! === defaultContent.uri).toBe(true);
             expect(oldContent.get(await sha256('decimals'))! === "9").toBe(true);
             let changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), newContent);
@@ -679,7 +626,6 @@ describe('JettonWallet', () => {
         const sendResult = await deployerJettonWallet.sendTransfer(deployer.getSender(), toNano('0.17'), //tons
                sentAmount, notDeployer.address,
                deployer.address, null, forwardAmount, null);
-        //console.log(sendResult.transactions[1].vmLogs);
         expect(sendResult.transactions).toHaveTransaction({ //excesses
             on : deployer.address,
             from: notDeployerJettonWallet.address,
@@ -986,14 +932,13 @@ describe('JettonWallet', () => {
                      fwd_count * fwd_fee +
                      (2 * gas_consumption + min_tons_for_storage));
         */
-        // console.log("Estimate forward fee:", minFwdFee);
         let minimalFee = calcSendFees(send_gas_fee, receive_gas_fee,
                                       minFwdFee, forwardAmount, min_tons_for_storage);
-        console.log("Minimal transfer fee:", fromNano(minimalFee));
         // Off by one should faile
         await testSendFees(minimalFee - 1n, forwardAmount, null, null, false);
         // Now should succeed
         await testSendFees(minimalFee, forwardAmount, null, null, true);
+        console.log("Minimal transfer fee:", fromNano(minimalFee));
     });
     it('forward_payload should impact transfer fees', async () => {
         let jettonAmount  = 1n;
@@ -1209,11 +1154,11 @@ describe('JettonWallet', () => {
     it('minter admin should be able to burn wallet jettons', async() => {
         const burnAmount = BigInt(getRandomInt(100000, 200000));
         const customPaylod = beginCell().storeUint(getRandomInt(100000, 200000), 128).endCell();
-        const burnTxs      = await testBurnFees(toNano('1'), deployer.address, burnAmount, 0, customPaylod); // await testAdminBurn(toNano('1'), burnAmount, deployer.address, deployer.address, null, 0);
+        const burnTxs      = await testBurnFees(toNano('1'), deployer.address, burnAmount, 0, customPaylod);
         const actualSent   = printTxGasStats("Burn transaction", burnTxs[0]);
         const actualRecv   = printTxGasStats("Burn notification transaction", burnTxs[1]);
         burn_gas_fee = computeGasFee(gasPrices, 5791n);
-        burn_notification_fee = computeGasFee(gasPrices, 6775n/*+ 266n*/);
+        burn_notification_fee = computeGasFee(gasPrices, 6775n);
         expect(burn_gas_fee).toBeGreaterThanOrEqual(actualSent);
         expect(burn_notification_fee).toBeGreaterThanOrEqual(actualRecv);
     });
@@ -1224,10 +1169,6 @@ describe('JettonWallet', () => {
                 let burnAmount = initialJettonBalance + 1n;
                 let msgValue   = toNano('1');
                 await testBurnFees(msgValue, deployer.address, burnAmount, Errors.balance_error, null);
-                // await testAdminBurn(msgValue, burnAmount,
-                //                     deployer.address, deployer.address,
-                //                     null, Errors.balance_error);
-
     });
 
     describe('Burn dynamic fees', () => {
@@ -1239,7 +1180,6 @@ describe('JettonWallet', () => {
        // Off by one
        await testBurnFees(minimalFee - 1n, deployer.address, burnAmount, Errors.not_enough_gas, null);
        // Now should succeed
-
        console.log("Minimal burn fee:", fromNano(minimalFee));
        const res = await testBurnFees(minimalFee, deployer.address, burnAmount, 0, null);
     });
@@ -1259,7 +1199,6 @@ describe('JettonWallet', () => {
        // Succeeds initally
 
        await testBurnFees(minimalFee, deployer.address, burnAmount, 0, null);
-       //await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, 0);
 
        const oldConfig = blockchain.config;
        const newPrices: MsgPrices  = {
@@ -1270,18 +1209,11 @@ describe('JettonWallet', () => {
        blockchain.setConfig(setMsgPrices(blockchain.config,newPrices, 0));
        // Now fail
        await testBurnFees(minimalFee, deployer.address, burnAmount, Errors.not_enough_gas, null, newPrices);
-       // await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, Errors.not_enough_gas);
        const newFwd = estimateBurnFwd(newPrices);
        minimalFee += newFwd - burnFwd;
-       // Can't do that due to reverse fee calculation rounding errors
-       //minimalFee += (burnFwd - msgPrices.lumpPrice) * 9n;
-
        // Success again
        await testBurnFees(minimalFee, deployer.address, burnAmount, 0, null, newPrices);
-       //await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, 0);
        // Check edge
-
-       //await testAdminBurn(minimalFee - 1n, burnAmount, notDeployer.address, deployer.address,  null, Errors.not_enough_gas);
        await testBurnFees(minimalFee - 1n, deployer.address, burnAmount, Errors.not_enough_gas, null, newPrices);
        blockchain.setConfig(oldConfig);
     });
@@ -1291,14 +1223,12 @@ describe('JettonWallet', () => {
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
        // Succeeds initally
        await testBurnFees(minimalFee, deployer.address, burnAmount, 0, null);
-       //await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, 0);
        const oldConfig = blockchain.config;
        blockchain.setConfig(setGasPrice(oldConfig,{
            ...gasPrices,
            gas_price: gasPrices.gas_price * 2n
        }, 0));
        await testBurnFees(minimalFee, deployer.address, burnAmount, Errors.not_enough_gas, null);
-       // await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, Errors.not_enough_gas);
 
        minimalFee += (burn_gas_fee - gasPrices.flat_gas_price) /* 2n*/ + (burn_notification_fee - gasPrices.flat_gas_price);// * 2n;
 
@@ -1854,7 +1784,6 @@ describe('JettonWallet', () => {
                      fwd_count * fwd_fee +
                      (2 * gas_consumption + min_tons_for_storage));
         */
-        // console.log("Estimate forward fee:", minFwdFee);
         let minimalFee = calcSendFees(send_gas_fee, receive_gas_fee,
                                       minFwdFee, forwardAmount, min_tons_for_storage);
         console.log("Minimal fee:", minimalFee);
