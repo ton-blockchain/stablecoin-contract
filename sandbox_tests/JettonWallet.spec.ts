@@ -1,5 +1,5 @@
 import { Blockchain, SandboxContract, TreasuryContract, internal, BlockchainSnapshot, SendMessageResult, defaultConfigSeqno, BlockchainTransaction } from '@ton/sandbox';
-import { Cell, toNano, beginCell, Address, Transaction, TransactionComputeVm, TransactionStoragePhase, storeAccountStorage, Sender, Dictionary, storeMessage, fromNano, DictionaryValue } from '@ton/core';
+import { Cell, toNano, beginCell, Address, Transaction, storeAccountStorage, Sender, Dictionary, storeMessage, fromNano, DictionaryValue } from '@ton/core';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { jettonContentToCell, JettonMinter, jettonMinterConfigToCell, JettonMinterContent, LockType } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
@@ -7,7 +7,7 @@ import {findTransaction, findTransactionRequired} from '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { randomAddress, getRandomTon, differentAddress, getRandomInt, testJettonTransfer, testJettonInternalTransfer, testJettonNotification, testJettonBurnNotification } from './utils';
 import { Op, Errors } from '../wrappers/JettonConstants';
-import { calcStorageFee, collectCellStats, computeCellForwardFees, computeFwdFees, computeFwdFeesVerbose, computeGasFee, computeMessageForwardFees, FullFees, GasPrices, getGasPrices, getMsgPrices, getStoragePrices, MsgPrices, setGasPrice, setMsgPrices, setStoragePrices, StorageStats, StorageValue } from '../gasUtils';
+import { calcStorageFee, collectCellStats, computeCellForwardFees, computeFwdFees, computeFwdFeesVerbose, computeGasFee, computeMessageForwardFees, FullFees, GasPrices, getGasPrices, getMsgPrices, getStoragePrices, computedGeneric, storageGeneric, MsgPrices, setGasPrice, setMsgPrices, setStoragePrices, StorageStats, StorageValue } from '../gasUtils';
 import { sha256 } from 'ton-crypto';
 
 /*
@@ -50,8 +50,6 @@ describe('JettonWallet', () => {
     let defaultOverhead: bigint;
     let defaultContent: JettonMinterContent;
 
-    let computedGeneric : (trans:Transaction) => TransactionComputeVm;
-    let storageGeneric : (trans:Transaction) => TransactionStoragePhase;
     let printTxGasStats: (name: string, trans: Transaction) => bigint;
     let estimateBodyFee: (body: Cell, force_ref: boolean, prices?: MsgPrices) => FullFees;
     let estimateBurnFwd: (amount: bigint, custom: Cell | null,  prices?: MsgPrices) => bigint;
@@ -118,23 +116,6 @@ describe('JettonWallet', () => {
                             await jettonMinter.getWalletAddress(address)
                           )
                      );
-
-        computedGeneric = (transaction) => {
-            if(transaction.description.type !== "generic")
-                throw("Expected generic transactionaction");
-            if(transaction.description.computePhase.type !== "vm")
-                throw("Compute phase expected")
-            return transaction.description.computePhase;
-        }
-
-        storageGeneric = (transaction) => {
-            if(transaction.description.type !== "generic")
-                throw("Expected generic transactionaction");
-            const storagePhase = transaction.description.storagePhase;
-            if(storagePhase  === null || storagePhase === undefined)
-                throw("Storage phase expected")
-            return storagePhase;
-        };
 
         printTxGasStats = (name, transaction) => {
             const txComputed = computedGeneric(transaction);
