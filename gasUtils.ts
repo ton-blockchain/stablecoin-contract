@@ -1,4 +1,4 @@
-import { Cell, Slice, toNano, beginCell, Address, Dictionary, Message, DictionaryValue } from '@ton/core';
+import { Cell, Slice, toNano, beginCell, Address, Dictionary, Message, DictionaryValue, Transaction } from '@ton/core';
 
 export type GasPrices = {
 	flat_gas_limit: bigint,
@@ -60,6 +60,23 @@ export class StorageStats {
             cells: this.cells.toString()
         });
     }
+}
+
+export function computedGeneric<T extends Transaction>(transaction: T) {
+    if(transaction.description.type !== "generic")
+        throw("Expected generic transactionaction");
+    if(transaction.description.computePhase.type !== "vm")
+        throw("Compute phase expected")
+    return transaction.description.computePhase;
+}
+
+export function storageGeneric<T extends Transaction>(transaction: T) {
+    if(transaction.description.type !== "generic")
+        throw("Expected generic transactionaction");
+    const storagePhase = transaction.description.storagePhase;
+    if(storagePhase  === null || storagePhase === undefined)
+        throw("Storage phase expected")
+    return storagePhase;
 }
 
 function shr16ceil(src: bigint) {
