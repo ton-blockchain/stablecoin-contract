@@ -87,8 +87,6 @@
 }
 
 () receive_jettons(slice in_msg_body, slice sender_address, int my_ton_balance, int msg_value) impure inline_ref {
-    ;; NOTE we can not allow fails in action phase since in that case there will be
-    ;; no bounce. Thus check and throw in computation phase.
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int incoming_transfers_locked = ((status & 2) == 2);
     throw_if(error::contract_locked, incoming_transfers_locked);

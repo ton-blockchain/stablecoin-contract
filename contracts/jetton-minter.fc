@@ -97,7 +97,7 @@
         int forward_ton_amount = master_msg_slice~load_coins(); ;; forward_ton_amount
         check_either_forward_payload(master_msg_slice); ;; either_forward_payload
 
-        ;; a little more than needed, it’s ok since it’s sent by the admin
+        ;; a little more than needed, it’s ok since it’s sent by the admin and excesses will return back
         check_amount_is_enough_to_transfer(ton_amount, forward_ton_amount, fwd_fee);
 
         send_to_jetton_wallet(to_address, jetton_wallet_code, ton_amount, master_msg, TRUE);
