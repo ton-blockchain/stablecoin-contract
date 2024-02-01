@@ -120,7 +120,7 @@ mint#642b7d07
   query_id:uint64
   to_address:MsgAddressInt
   ton_amount:Coins
-  master_msg:JettonInOutMsg
+  master_msg:JettonInOutMsg // todo ref, only internal_transfer
   = JettonMinterMsg;
 
 change_admin#6501f354
@@ -136,7 +136,7 @@ call_to#235caf52
   query_id:uint64
   to_address:MsgAddressInt
   ton_amount:Coins
-  master_msg:JettonMsg
+  master_msg:JettonMsg // todo ref
   = JettonMinterMsg;
 
 upgrade#2508d66a
