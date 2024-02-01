@@ -71,7 +71,7 @@ internal_transfer#178d4519
   response_address:MsgAddress
   forward_ton_amount:Coins
   forward_payload:(Either Cell ^Cell)
-  = JettonInOutMsg;
+  = JettonInternalTransfer;
 
 burn_notification#7bdd97de
   query_id:uint64
@@ -82,7 +82,7 @@ burn_notification#7bdd97de
 
 _ _:JettonMsg = InternalMsgBody;
 _ _:JettonOutMsg = InternalMsgBody;
-_ _:JettonInOutMsg = InternalMsgBody;
+_ _:JettonInternalTransfer = InternalMsgBody;
 
 //=======================================================================
 // TEP - 89
@@ -120,7 +120,7 @@ mint#642b7d07
   query_id:uint64
   to_address:MsgAddressInt
   ton_amount:Coins
-  master_msg:JettonInOutMsg // todo ref, only internal_transfer
+  master_msg:^JettonInternalTransfer
   = JettonMinterMsg;
 
 change_admin#6501f354
@@ -136,7 +136,7 @@ call_to#235caf52
   query_id:uint64
   to_address:MsgAddressInt
   ton_amount:Coins
-  master_msg:JettonMsg // todo ref
+  master_msg:^JettonMsg
   = JettonMinterMsg;
 
 upgrade#2508d66a
