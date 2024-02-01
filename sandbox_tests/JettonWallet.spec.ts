@@ -1059,6 +1059,7 @@ describe('JettonWallet', () => {
         await testSendFees(minimalFee, forwardAmount, forwardPayload, null, true);
         // Tet edge
         await testSendFees(minimalFee - 1n, forwardAmount, forwardPayload, null, false);
+        blockchain.setConfig(oldConfig);
     });
     });
 
