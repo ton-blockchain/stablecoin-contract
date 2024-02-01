@@ -619,8 +619,12 @@ describe('JettonWallet', () => {
             const initialServiceBalance = await service.getBalance();
             const initialFeeReceiverBalance = await feeReceiver.getBalance();
 
+            const initialW5JwalletBalance = (await blockchain.getContract(w5Jwallet.address)).balance;
+            const initialServiceJwalletBalance = (await blockchain.getContract(serviceJwallet.address)).balance;
+            const initialFeeReceiverJwalletBalance = (await blockchain.getContract(feeReceiverJwallet.address)).balance;
+
             const jettonTransfer1 = JettonWallet.transferMessage(toNano('100'), service.address, service.address, null, 0n, null);
-            const jettonTransfer2 = JettonWallet.transferMessage(toNano('1'), feeReceiver.address, feeReceiver.address, null, 0n, null);
+            const jettonTransfer2 = JettonWallet.transferMessage(toNano('1'), feeReceiver.address, service.address, null, 0n, null);
 
             const msg1 = createMsgInternal({ dest: w5Jwallet.address, value: toNano('1'), body: jettonTransfer1 });
             const msg2 = createMsgInternal({ dest: w5Jwallet.address, value: toNano('1'), body: jettonTransfer2 });
@@ -664,6 +668,10 @@ describe('JettonWallet', () => {
             const resultServiceBalance = await service.getBalance();
             const resultFeeReceiverBalance = await feeReceiver.getBalance();
 
+            const resultlW5JwalletBalance = (await blockchain.getContract(w5Jwallet.address)).balance;
+            const resultServiceJwalletBalance = (await blockchain.getContract(serviceJwallet.address)).balance;
+            const resultFeeReceiverJwalletBalance = (await blockchain.getContract(feeReceiverJwallet.address)).balance;
+
             console.log("service -> w5 =", fromNano(receipt.transactions[0].totalFees.coins));
             console.log("w5 -> w5Jwallet x2 =", fromNano(receipt.transactions[1].totalFees.coins));
             console.log("w5Jwallet -> serviceJwallet | transfer =", fromNano(receipt.transactions[2].totalFees.coins));
@@ -671,7 +679,77 @@ describe('JettonWallet', () => {
             console.log("serviceJwallet | receive =", fromNano(receipt.transactions[4].totalFees.coins));
             console.log("feeReceiverJwallet | receive =", fromNano(receipt.transactions[5].totalFees.coins));
 
-            const totalFee = (initialW5Balance + initialServiceBalance + initialFeeReceiverBalance) - (resultW5Balance + resultServiceBalance + resultFeeReceiverBalance);
+            // console.log(fromNano(initialW5Balance - resultW5Balance));
+            // console.log(fromNano(initialServiceBalance - resultServiceBalance));
+            // console.log(fromNano(initialFeeReceiverBalance - resultFeeReceiverBalance));
+            // console.log(fromNano(initialW5JwalletBalance - resultlW5JwalletBalance));
+            // console.log(fromNano(initialServiceJwalletBalance - resultServiceJwalletBalance));
+            // console.log(fromNano(initialFeeReceiverJwalletBalance - resultFeeReceiverJwalletBalance));
+
+            const initialBalances = initialW5Balance + initialW5JwalletBalance + initialServiceBalance + initialServiceJwalletBalance + initialFeeReceiverBalance + initialFeeReceiverJwalletBalance;
+            const resultBalances = resultW5Balance + resultlW5JwalletBalance + resultServiceBalance + resultServiceJwalletBalance + resultFeeReceiverBalance + resultFeeReceiverJwalletBalance;
+
+            const totalFee = initialBalances - resultBalances;
+            console.log("calcs total fee =", fromNano(totalFee));
+        })
+
+    it('gasless transfer without service fee', async () => {
+            const initialW5Balance = (await blockchain.getContract(w5.address)).balance;
+            const initialServiceBalance = await service.getBalance();
+
+            const initialW5JwalletBalance = (await blockchain.getContract(w5Jwallet.address)).balance;
+            const initialServiceJwalletBalance = (await blockchain.getContract(serviceJwallet.address)).balance;
+
+            const jettonTransfer1 = JettonWallet.transferMessage(toNano('100'), service.address, service.address, null, 0n, null);
+
+            const msg1 = createMsgInternal({ dest: w5Jwallet.address, value: toNano('0'), body: jettonTransfer1 });
+
+            const actionsList = packActionsList([
+                new ActionSendMsg(64, msg1),
+            ]);
+
+            const receipt = await w5.sendInternalSignedMessage(service.getSender(), {
+                value: toNano('3'),
+                body: createBody(actionsList)
+            });
+
+            expect(receipt.transactions).toHaveTransaction({
+                from: service.address,
+                to: w5.address,
+                success: true
+            });
+
+            expect(receipt.transactions).toHaveTransaction({
+                from: w5.address,
+                to: w5Jwallet.address,
+                body: jettonTransfer1,
+                success: true
+            });
+
+            expect(receipt.transactions.length).toEqual(5);
+
+            expect(await serviceJwallet.getJettonBalance()).toEqual(toNano('200') + initialJettonBalance);
+
+            const resultW5Balance = (await blockchain.getContract(w5.address)).balance;
+            const resultServiceBalance = await service.getBalance();
+
+            const resultlW5JwalletBalance = (await blockchain.getContract(w5Jwallet.address)).balance;
+            const resultServiceJwalletBalance = (await blockchain.getContract(serviceJwallet.address)).balance;
+
+            console.log("service -> w5 =", fromNano(receipt.transactions[0].totalFees.coins));
+            console.log("w5 -> w5Jwallet =", fromNano(receipt.transactions[1].totalFees.coins));
+            console.log("w5Jwallet -> serviceJwallet | transfer =", fromNano(receipt.transactions[2].totalFees.coins));
+            console.log("serviceJwallet | receive =", fromNano(receipt.transactions[3].totalFees.coins));
+
+            // console.log(fromNano(initialW5Balance - resultW5Balance));
+            // console.log(fromNano(initialServiceBalance - resultServiceBalance));
+            // console.log(fromNano(initialW5JwalletBalance - resultlW5JwalletBalance));
+            // console.log(fromNano(initialServiceJwalletBalance - resultServiceJwalletBalance));
+
+            const initialBalances = initialW5Balance + initialW5JwalletBalance + initialServiceBalance + initialServiceJwalletBalance;
+            const resultBalances = resultW5Balance + resultlW5JwalletBalance + resultServiceBalance + resultServiceJwalletBalance;
+
+            const totalFee = initialBalances - resultBalances;
             console.log("calcs total fee =", fromNano(totalFee));
         })
     });
