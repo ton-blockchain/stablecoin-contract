@@ -56,26 +56,26 @@ burn#595f07bc
 
 transfer_notification#7362d09c
   query_id:uint64
-  amount:(VarUInteger 16)
+  amount:Coins
   sender:MsgAddress
   forward_payload:(Either Cell ^Cell)
   = JettonOutMsg;
 
-// not JettonOutMsg since common
 excesses#d53276db query_id:uint64 = InternalMsgBody;
 
 
 internal_transfer#178d4519
-  query_id:uint64 amount:(VarUInteger 16)
+  query_id:uint64
+  amount:Coins
   from:MsgAddress
   response_address:MsgAddress
-  forward_ton_amount:(VarUInteger 16)
+  forward_ton_amount:Coins
   forward_payload:(Either Cell ^Cell)
   = JettonInOutMsg;
 
 burn_notification#7bdd97de
   query_id:uint64
-  amount:(VarUInteger 16)
+  amount:Coins
   sender:MsgAddress
   response_destination:MsgAddress
   = JettonMinterMsg;
