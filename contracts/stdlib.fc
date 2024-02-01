@@ -785,6 +785,7 @@ builder store_prefix_only_body(builder b) inline {
     .store_uint(0, MSG_ONLY_BODY_SIZE);
 }
 
+;; parse after sernder_address
 (slice, int) ~retrieve_fwd_fee(slice in_msg_full_slice) inline {
     in_msg_full_slice~load_msg_addr(); ;; skip dst
     in_msg_full_slice~load_coins(); ;; skip value
@@ -843,12 +844,12 @@ const int SEND_MODE_DESTROY = 32;
 const int SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE = 64;
 ;;; x = 128 is used for messages that are to carry all the remaining balance of the current smart contract (instead of the value originally indicated in the message).
 const int SEND_MODE_CARRY_ALL_BALANCE = 128;
-;;; in the case of action fail - bounce transaction. No effect if SEND_MODE_IGNORE_ERRORS (+2) is used. TVM UPGRADE 2023-07.
+;;; in the case of action fail - bounce transaction. No effect if SEND_MODE_IGNORE_ERRORS (+2) is used. TVM UPGRADE 2023-07. https://docs.ton.org/learn/tvm-instructions/tvm-upgrade-2023-07#sending-messages
 const int SEND_MODE_BOUNCE_ON_ACTION_FAIL = 16;
 
 ;; Only for `send_message`:
 
-;;; do not create an action, only estimate fee
+;;; do not create an action, only estimate fee. TVM UPGRADE 2023-07. https://docs.ton.org/learn/tvm-instructions/tvm-upgrade-2023-07#sending-messages
 const int SEND_MODE_ESTIMATE_FEE_ONLY = 1024;
 
 ;; Other modes affect the fee calculation as follows:
@@ -862,7 +863,7 @@ const int RESERVE_REGULAR = 0;
 ;;; Creates an output action which would reserve at most x nanograms (if y = 2).
 ;;; Bit +2 in y means that the external action does not fail if the specified amount cannot be reserved; instead, all remaining balance is reserved.
 const int RESERVE_AT_MOST = 2;
-;;; in the case of action fail - bounce transaction. No effect if RESERVE_AT_MOST (+2) is used. TVM UPGRADE 2023-07.
+;;; in the case of action fail - bounce transaction. No effect if RESERVE_AT_MOST (+2) is used. TVM UPGRADE 2023-07. https://docs.ton.org/learn/tvm-instructions/tvm-upgrade-2023-07#sending-messages
 const int RESERVE_BOUNCE_ON_ACTION_FAIL = 16;
 
 ;; TOKEN METADATA
