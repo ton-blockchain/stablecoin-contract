@@ -34,7 +34,7 @@ const JETTON_WALLET_INITSTATE_BITS  = 931;
 const JETTON_WALLET_INITSTATE_CELLS = 3;
 
 ;; jetton-wallet.fc#L163 - maunal bits counting
-const BURN_NOTIFICATION_BITS = 754; ;; 32+64+124+267+267
+const BURN_NOTIFICATION_BITS = 754; ;; body = 32+64+124+(3+8+256)+(3+8+256)
 const BURN_NOTIFICATION_CELLS = 1; ;; body always in ref
 
 ;;## Gas
