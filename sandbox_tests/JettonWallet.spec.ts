@@ -1189,8 +1189,7 @@ describe('JettonWallet', () => {
        const customPayload = beginCell().storeUint(getRandomInt(1000, 2000), 256).endCell();
        const burnFwd    = estimateBurnFwd();
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
-       // If custom payload impacts fee, this tx chain will fail
-       // await testBurnFees(minimalFee, burnAmount, deployer.address, true, customPayload);
+       await testBurnFees(minimalFee, deployer.address, burnAmount, 0, customPayload);
     });
     it('burn forward fee should be calculated from actual config values', async () => {
        let burnAmount   = toNano('0.01');
@@ -1226,11 +1225,11 @@ describe('JettonWallet', () => {
        const oldConfig = blockchain.config;
        blockchain.setConfig(setGasPrice(oldConfig,{
            ...gasPrices,
-           gas_price: gasPrices.gas_price * 2n
+           gas_price: gasPrices.gas_price * 3n
        }, 0));
        await testBurnFees(minimalFee, deployer.address, burnAmount, Errors.not_enough_gas, null);
 
-       minimalFee += (burn_gas_fee - gasPrices.flat_gas_price) /* 2n*/ + (burn_notification_fee - gasPrices.flat_gas_price);// * 2n;
+       minimalFee += (burn_gas_fee - gasPrices.flat_gas_price) * 2n + (burn_notification_fee - gasPrices.flat_gas_price) * 2n;
 
        await testBurnFees(minimalFee, deployer.address, burnAmount, 0, null);
        // Verify edge
