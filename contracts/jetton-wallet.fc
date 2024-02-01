@@ -58,31 +58,6 @@ const int EXTRA_TRANSFER_ALLOWED = -1;
     slice response_address = in_msg_body~load_msg_addr();
     cell custom_payload_cell = in_msg_body~load_maybe_ref();
 
-    int forward_ton_amount = in_msg_body~load_coins();
-    check_either_forward_payload(in_msg_body);
-    slice either_forward_payload = in_msg_body;
-
-    ;; see internal TL-B layout in jetton.tlb
-    cell msg_body = begin_cell()
-    .store_op(op::internal_transfer)
-    .store_query_id(query_id)
-    .store_coins(jetton_amount)
-    .store_slice(owner_address)
-    .store_slice(response_address)
-    .store_coins(forward_ton_amount)
-    .store_slice(either_forward_payload)
-    .end_cell();
-
-    ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
-    cell msg = begin_cell()
-    .store_msg_flags_and_address_none(BOUNCEABLE)
-    .store_slice(to_wallet_address)
-    .store_coins(0)
-    .store_statinit_ref_and_body_ref(state_init, msg_body)
-    .end_cell();
-
-    send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
-
     if (EXTRA_TRANSFER_ALLOWED) {
         ;; Extra transfer consume constant amount of TON: extra_ton_amount
         ;; thus we can decrease balance extra_ton_amount and keep all checks
@@ -123,6 +98,31 @@ const int EXTRA_TRANSFER_ALLOWED = -1;
             msg_value -= extra_ton_amount;
         }
     }
+
+    int forward_ton_amount = in_msg_body~load_coins();
+    check_either_forward_payload(in_msg_body);
+    slice either_forward_payload = in_msg_body;
+
+    ;; see internal TL-B layout in jetton.tlb
+    cell msg_body = begin_cell()
+    .store_op(op::internal_transfer)
+    .store_query_id(query_id)
+    .store_coins(jetton_amount)
+    .store_slice(owner_address)
+    .store_slice(response_address)
+    .store_coins(forward_ton_amount)
+    .store_slice(either_forward_payload)
+    .end_cell();
+
+    ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
+    cell msg = begin_cell()
+    .store_msg_flags_and_address_none(BOUNCEABLE)
+    .store_slice(to_wallet_address)
+    .store_coins(0)
+    .store_statinit_ref_and_body_ref(state_init, msg_body)
+    .end_cell();
+
+    send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
     throw_unless(error::balance_error, balance >= 0);
     check_amount_is_enough_to_transfer(msg_value, forward_ton_amount, fwd_fee);
