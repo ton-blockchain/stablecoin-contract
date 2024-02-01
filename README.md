@@ -36,9 +36,3 @@ The following assumes the use of `node@>=16` and requires `func` and `fift` exec
 ## Run Tests
 
 `npm run test`
-
-## Credits
-
-Author @dariotarantini.
-
-Reviewed by @tolya-yanot.
