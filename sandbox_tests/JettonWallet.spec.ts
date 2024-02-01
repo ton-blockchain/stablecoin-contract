@@ -52,7 +52,7 @@ describe('JettonWallet', () => {
 
     let printTxGasStats: (name: string, trans: Transaction) => bigint;
     let estimateBodyFee: (body: Cell, force_ref: boolean, prices?: MsgPrices) => FullFees;
-    let estimateBurnFwd: (amount: bigint, custom: Cell | null,  prices?: MsgPrices) => bigint;
+    let estimateBurnFwd: (prices?: MsgPrices) => bigint;
     let forwardOverhead: (prices: MsgPrices, stats: StorageStats) => bigint;
     let estimateTransferFwd: (amount: bigint, fwd_amount: bigint,
                               fwd_payload: Cell | null,
@@ -137,7 +137,7 @@ describe('JettonWallet', () => {
             const stats  = collectCellStats(packed, [], true);
             return computeFwdFeesVerbose(prices || msgPrices,  stats.cells, stats.bits);
         }
-        estimateBurnFwd = (amount, custom, prices) => {
+        estimateBurnFwd = (prices) => {
             const curPrices = prices || msgPrices;
             return computeFwdFees(curPrices, 1n, 754n)
             // const mockAddr = randomAddress(0);
@@ -1158,7 +1158,7 @@ describe('JettonWallet', () => {
     describe('Burn dynamic fees', () => {
     it('minimal burn message fee', async () => {
        let burnAmount   = toNano('0.01');
-       const burnFwd    = estimateBurnFwd(burnAmount, null);
+       const burnFwd    = estimateBurnFwd();
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
 
        // Off by one
@@ -1172,14 +1172,14 @@ describe('JettonWallet', () => {
     it('burn custom payload should not impact fees', async () => {
        let burnAmount   = toNano('0.01');
        const customPayload = beginCell().storeUint(getRandomInt(1000, 2000), 256).endCell();
-       const burnFwd    = estimateBurnFwd(burnAmount, null);
+       const burnFwd    = estimateBurnFwd();
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
        // If custom payload impacts fee, this tx chain will fail
        // await testBurnFees(minimalFee, burnAmount, deployer.address, true, customPayload);
     });
     it('burn forward fee should be calculated from actual config values', async () => {
        let burnAmount   = toNano('0.01');
-       let   burnFwd    = estimateBurnFwd(burnAmount, null);
+       let   burnFwd    = estimateBurnFwd();
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
        // Succeeds initally
 
@@ -1196,7 +1196,7 @@ describe('JettonWallet', () => {
        // Now fail
        await testBurnFees(minimalFee, deployer.address, burnAmount, Errors.not_enough_gas, null, newPrices);
        // await testAdminBurn(minimalFee, burnAmount, notDeployer.address, deployer.address,  null, Errors.not_enough_gas);
-       const newFwd = estimateBurnFwd(burnAmount, null, newPrices);
+       const newFwd = estimateBurnFwd(newPrices);
        minimalFee += newFwd - burnFwd;
        // Can't do that due to reverse fee calculation rounding errors
        //minimalFee += (burnFwd - msgPrices.lumpPrice) * 9n;
@@ -1212,7 +1212,7 @@ describe('JettonWallet', () => {
     });
     it('burn gas fees should be calculated from actual config values', async () => {
        let burnAmount   = toNano('0.01');
-       const burnFwd    = estimateBurnFwd(burnAmount, null);
+       const burnFwd    = estimateBurnFwd();
        let minimalFee   = burnFwd + burn_gas_fee + burn_notification_fee + 1n;
        // Succeeds initally
        await testBurnFees(minimalFee, deployer.address, burnAmount, 0, null);
