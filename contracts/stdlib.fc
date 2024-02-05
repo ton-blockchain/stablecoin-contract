@@ -649,6 +649,8 @@ cell my_code() asm "MYCODE";
 ;;; Creates an output action and returns a fee for creating a message. Mode has the same effect as in the case of SENDRAWMSG
 int send_message(cell msg, int mode) impure asm "SENDMSG";
 
+int gas_consumed() asm "GASCONSUMED";
+
 ;; TVM V6 https://github.com/ton-blockchain/ton/blob/testnet/doc/GlobalVersions.md#version-6
 
 int get_compute_fee(int workchain, int gas_used) asm(gas_used workchain) "GETGASFEE";
