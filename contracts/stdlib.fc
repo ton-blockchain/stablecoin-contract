@@ -721,8 +721,8 @@ const int BOUNCEABLE = 0x18; ;; 0b011000 tag - 0, ihr_disabled - 1, bounce - 1, 
 const int NON_BOUNCEABLE = 0x10; ;; 0b010000 tag - 0, ihr_disabled - 1, bounce - 0, bounced - 0, src = adr_none$00
 
 ;; store msg_flags and address none
-builder store_msg_flags_and_address_none(builder b, int msg_flag) inline {
-    return b.store_uint(msg_flag, 6);
+builder store_msg_flags_and_address_none(builder b, int msg_flags) inline {
+    return b.store_uint(msg_flags, 6);
 }
 
 ;; load msg_flags only
@@ -785,7 +785,7 @@ builder store_prefix_only_body(builder b) inline {
     .store_uint(0, MSG_ONLY_BODY_SIZE);
 }
 
-;; parse after sernder_address
+;; parse after sender_address
 (slice, int) ~retrieve_fwd_fee(slice in_msg_full_slice) inline {
     in_msg_full_slice~load_msg_addr(); ;; skip dst
     in_msg_full_slice~load_coins(); ;; skip value
