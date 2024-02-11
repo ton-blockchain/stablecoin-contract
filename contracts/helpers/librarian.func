@@ -2,12 +2,13 @@
 
 #include "../stdlib.fc";
 
-const int DEFAULT_DURATION = 3600 * 24 * 365 * 100;
+const int DEFAULT_DURATION = 3600 * 24 * 365 * 100; ;; 100 years, can top-up in any time
 const int ONE_TON = 1000000000;
 
 cell empty() asm "<b b> PUSHREF";
-() set_lib_code(cell code, int mode) impure asm "SETLIBCODE";
 
+;; https://docs.ton.org/tvm.pdf, page 138, SETLIBCODE
+() set_lib_code(cell code, int mode) impure asm "SETLIBCODE";
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
     slice cs = in_msg_full.begin_parse();
@@ -31,7 +32,8 @@ cell empty() asm "<b b> PUSHREF";
             .store_prefix_only_body()
             .end_cell();
     send_raw_message(msg, SEND_MODE_CARRY_ALL_BALANCE);
-    set_lib_code(lib_to_publish, 2);
+    ;; https://docs.ton.org/tvm.pdf, page 138, SETLIBCODE
+    set_lib_code(lib_to_publish, 2);  ;; if x = 2, the library is added as a public library (and becomes available to all smart contracts if the current smart contract resides in the masterchain);
     ;; brick contract
     set_code(empty());
     set_data(empty());
