@@ -7,8 +7,4 @@
         "strict": true,
         "skipLibCheck": true
     },
-    "ts-node": {
-        "transpileOnly": true,
-        "transpiler": "ts-node/transpilers/swc"
-    }
 }

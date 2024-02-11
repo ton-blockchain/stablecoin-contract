@@ -1,6 +1,7 @@
 import { sleep, NetworkProvider, UIProvider} from '@ton/blueprint';
 import { Address, beginCell, Builder, Cell, Dictionary, DictionaryValue, Slice } from "@ton/core";
 import { sha256 } from 'ton-crypto';
+import {TonClient4} from "@ton/ton";
 
 export const defaultJettonKeys = ["uri", "name", "description", "image", "image_data", "symbol", "decimals", "amount_style"];
 export const defaultNftKeys    = ["uri", "name", "description", "image", "image_data"];
@@ -50,10 +51,10 @@ export const promptAmount = async (prompt:string, provider:UIProvider) => {
 }
 
 export const getLastBlock = async (provider: NetworkProvider) => {
-    return (await provider.api().getLastBlock()).last.seqno;
+    return (await (provider.api() as TonClient4).getLastBlock()).last.seqno;
 }
 export const getAccountLastTx = async (provider: NetworkProvider, address: Address) => {
-    const res = await provider.api().getAccountLite(await getLastBlock(provider), address);
+    const res = await (provider.api() as TonClient4).getAccountLite(await getLastBlock(provider), address);
     if(res.account.last == null)
         throw(Error("Contract is not active"));
     return res.account.last.lt;
@@ -67,7 +68,7 @@ export const waitForTransaction = async (provider:NetworkProvider, address:Addre
         const lastBlock = await getLastBlock(provider);
         ui.write(`Awaiting transaction completion (${++count}/${maxRetry})`);
         await sleep(interval);
-        const curState = await provider.api().getAccountLite(lastBlock, address);
+        const curState = await (provider.api() as TonClient4).getAccountLite(lastBlock, address);
         if(curState.account.last !== null){
             done = curState.account.last.lt !== curTx;
         }

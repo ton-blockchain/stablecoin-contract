@@ -3,6 +3,7 @@ import { compile, NetworkProvider, UIProvider} from '@ton/blueprint';
 import { JettonMinter, jettonMinterConfigCellToConfig, JettonMinterConfigFull, jettonMinterConfigFullToCell } from '../wrappers/JettonMinter';
 import { promptBool, promptAmount, promptAddress, displayContentCell, getLastBlock, waitForTransaction, getAccountLastTx } from '../wrappers/ui-utils';
 import { JettonWallet } from '../wrappers/JettonWallet';
+import {TonClient4} from "@ton/ton";
 let minterContract:OpenedContract<JettonMinter>;
 
 const adminActions  = ['Mint', 'Change admin', 'Upgrade', 'Lock', 'Unlock', 'Force transfer', 'Force burn'];
@@ -163,7 +164,7 @@ const updateData = async (oldData: Cell, ui: UIProvider) => {
     return jettonMinterConfigFullToCell(newConfig);
 }
 const upgradeAction = async (provider: NetworkProvider, ui: UIProvider) => {
-    const api = provider.api();
+    const api = provider.api() as TonClient4;
     let upgradeCode = await promptBool(`Would you like to upgrade code?\nSource from jetton-minter.fc will be used.`, ['Yes', 'No'], ui, true);
     let upgradeData = await promptBool(`Would you like to upgrade data?`, ['Yes', 'No'], ui, true);
 
@@ -197,8 +198,8 @@ const upgradeAction = async (provider: NetworkProvider, ui: UIProvider) => {
     }
 }
 
-type AccountStateLite = Awaited<ReturnType<ReturnType<NetworkProvider['api']>['getAccountLite']>>;
-type AccountStateFull = Awaited<ReturnType<ReturnType<NetworkProvider['api']>['getAccount']>>;
+type AccountStateLite = any;
+type AccountStateFull = any;
 
 const matchCodeLite = (contractState: AccountStateLite, code: Cell) => {
     let equals = false;
@@ -229,7 +230,7 @@ const lockAction = async (provider: NetworkProvider, ui: UIProvider, lock: boole
         const lockAddr   = await promptAddress(`Please enter address to ${lockPrompt}:`, ui);
         const jettonAddr = await minterContract.getWalletAddress(lockAddr);
         ui.write(`Owned jetton address:${jettonAddr}`);
-        const contractState = await provider.api().getAccountLite(await getLastBlock(provider), jettonAddr);
+        const contractState = await (provider.api() as TonClient4).getAccountLite(await getLastBlock(provider), jettonAddr);
         if(contractState.account.state.type === 'active') {
             if(! (await matchCodeLite(contractState, walletCode))) {
                 const action = await ui.choose('Contract code doesn\'t match current wallet version', ['Continue', 'Switch wallet', 'Stop'], (c: string) => c);
@@ -249,7 +250,7 @@ const lockAction = async (provider: NetworkProvider, ui: UIProvider, lock: boole
             else {
                 // We could have re-used data from contractState but it's impossible to tell how long dialogs will take, and we need fresh tx lt
                 const prevTx = await getAccountLastTx(provider, minterContract.address);
-                await minterContract.sendLockWallet(provider.sender(), lockAddr, lock, toNano('0.05'));
+                await minterContract.sendLockWallet(provider.sender(), lockAddr, lock ? 'full' : 'unlock', toNano('0.05'));
                 const gotTrans = await waitForTransaction(provider, minterContract.address, prevTx, 10);
                 if(gotTrans) {
                     const lockAfter = await jettonWalelt.getWalletStatus();
@@ -279,7 +280,7 @@ const transferAction = async (provider: NetworkProvider, ui: UIProvider) => {
         const fromAddr = await promptAddress('Please enter jetton owner address to transfer from:', ui);
         const jettonAddr = await minterContract.getWalletAddress(fromAddr);
         ui.write(`Owned jetton address:${jettonAddr}`);
-        const contractState = await provider.api().getAccountLite(await getLastBlock(provider), jettonAddr);
+        const contractState = await (provider.api() as TonClient4).getAccountLite(await getLastBlock(provider), jettonAddr);
         if(contractState.account.state.type === 'active') {
             if(! (await matchCodeLite(contractState, walletCode))) {
                 const action = await ui.choose('Contract code doesn\'t match current wallet version', ['Continue', 'Switch wallet', 'Stop'], (c: string) => c);
@@ -332,7 +333,7 @@ const burnAction = async (provider: NetworkProvider, ui: UIProvider) => {
         const burnAddr = await promptAddress(`Please enter jetton owner address to burn:`, ui);
         const jettonAddr = await minterContract.getWalletAddress(burnAddr);
         ui.write(`Owned jetton address:${jettonAddr}`);
-        const contractState = await provider.api().getAccountLite(await getLastBlock(provider), jettonAddr);
+        const contractState = await (provider.api() as TonClient4).getAccountLite(await getLastBlock(provider), jettonAddr);
         if(contractState.account.state.type === 'active') {
             if(! (await matchCodeLite(contractState, walletCode))) {
                 const action = await ui.choose('Contract code doesn\'t match current wallet version', ['Continue', 'Switch wallet', 'Stop'], (c: string) => c);
@@ -382,7 +383,7 @@ export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
     const sender = provider.sender();
     const hasSender = sender.address !== undefined;
-    const api    = provider.api()
+    const api    = provider.api() as TonClient4;
     minterCode = await compile('JettonMinter');
     walletCode = await compile('JettonWallet');
     let   done   = false;
