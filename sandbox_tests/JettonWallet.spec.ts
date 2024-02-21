@@ -2219,7 +2219,7 @@ describe('JettonWallet', () => {
             expect(await getContractCode(jettonMinter.address)).toEqualCell(codeBefore);
             expect(await getContractData(jettonMinter.address)).toEqualCell(dataBefore);
         });
-        it('admin should be able to upgrade minter code and data', async () => {
+        it('admin should not be able to upgrade minter code and data with brick code', async () => {
             const codeCell = beginCell().storeUint(getRandomInt(1000, (1 << 32) - 1), 32).endCell();
             const dataCell = beginCell().storeUint(getRandomInt(1000, (1 << 32) - 1), 32).endCell();
 
@@ -2233,6 +2233,22 @@ describe('JettonWallet', () => {
 
             expect(await getContractCode(jettonMinter.address)).toEqualCell(codeCell);
             expect(await getContractData(jettonMinter.address)).toEqualCell(dataCell);
+        });
+        it('admin should be able to upgrade minter code and data', async () => {
+            // TODO improve!
+            const codeBefore = await getContractCode(jettonMinter.address);
+            const dataBefore = await getContractData(jettonMinter.address);
+            await blockchain.setVerbosityForAddress(jettonMinter.address, {blockchainLogs:true, vmLogs: 'vm_logs'});
+            const res = await jettonMinter.sendUpgrade(deployer.getSender(), codeBefore, dataBefore);
+            expect(res.transactions).toHaveTransaction({
+                on: jettonMinter.address,
+                from: deployer.address,
+                op: Op.upgrade,
+                success: true
+            });
+
+            expect(await getContractCode(jettonMinter.address)).toEqualCell(codeBefore);
+            expect(await getContractData(jettonMinter.address)).toEqualCell(dataBefore);
         });
     });
 

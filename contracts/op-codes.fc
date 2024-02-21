@@ -27,6 +27,9 @@ const op::upgrade = 0x2508d66a;
 const op::call_to = 0x235caf52;
 const op::change_metadata_uri = 0xcb862902;
 
+
+const error::upgrade_is_not_revertable = 212;
+
 ;; jetton-wallet
 
 const op::set_status = 0xeed236d3;
