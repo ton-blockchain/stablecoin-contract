@@ -1,0 +1,55 @@
+;; x_1 ... x_n n code [r] [c4] [c7]  - exitcode [c4'] [c5]
+;; Flags:
+;; +1: set c3 to code
+;; +2: push an implicit 0 before running the code
+;; +4: take c4 from stack (persistent data), return its final value
+;; +16: take c7 from stack (smart-contract context)
+;; +32: return final value of c5 (actions)
+;; +256: pop integer r, return exactly r values from the top of the stack
+;; summ = 310
+;; Note, we intentionally notify emulation about being emulation
+;; by setting trans_lt variable in c7 to 0
+(cell, cell, int) run_in_sandbox(int msg_value, cell in_msg_full, slice in_msg_body,
+        slice code, cell data)
+    asm "3 PUSHINT ROTREV" ;; n=3, move under code and data
+        "0 PUSHINT SWAP" ;; r=0, move under data
+        "c7 PUSHCTR" ;; put vanila c7
+        "FIRST   0 PUSHINT 5 SETINDEX   1 TUPLE" ;; unpack params, set 0 current ltime, pack c7 back
+        "311 RUNVM"
+        "ROT" ;; move exitcode to the top
+        ;
+() check_code_data(cell in_msg_full, cell data, cell code) impure {
+    ;; lets emulate in sandbox running upgrade message sent from current admin
+    ;; on updated code and data which sets current code and data
+    ;; it will ensure that admin can revert update to the state prior update
+
+    ;;let build message body
+    slice message_body = begin_cell()
+                         .store_op(op::upgrade)
+                         .store_query_id(0) ;; any query_id should work
+                         .store_ref(get_data())
+                         .store_ref(my_code())
+                         .end_cell().begin_parse();
+    ;; reuse in_msg_full, only admin_address and flags will be parsed from there
+    (cell new_data, cell c5, int exitcode) = run_in_sandbox(ONE_TON, in_msg_full,
+                                                            message_body, code.begin_parse(), data);
+    throw_unless(error::upgrade_is_not_revertable, exitcode == 0);
+    throw_unless(error::upgrade_is_not_revertable, new_data.cell_hash() == get_data().cell_hash());
+    ;;lets parse c5 and find set_code action
+    slice root_c5_slice = c5.begin_parse();
+    ;; empty cell is indicator of the end of the list,
+    ;; we expect only one element in the list, so lets check end early
+    slice end_list = root_c5_slice~load_ref().begin_parse();
+    throw_unless(error::upgrade_is_not_revertable, end_list.slice_bits() == 0);
+    ;; https://github.com/ton-blockchain/ton/blob/17c3477f7191fe6e5db22b71631b5c7472046c2f/crypto/block/block.tlb#L382C26-L382C34
+    ;; action_set_code#ad4de08e new_code:^Cell = OutAction;
+    ;; 32bit 0xad4de08e is tag related to set_code action
+    throw_unless(error::upgrade_is_not_revertable, root_c5_slice~load_uint(32) == 0xad4de08e);
+    cell new_code = root_c5_slice~load_ref();
+    throw_unless(error::upgrade_is_not_revertable, new_code.cell_hash() == my_code().cell_hash());
+}
+
+
+int is_emulation?() inline {
+    return cur_lt() == 0;
+}
