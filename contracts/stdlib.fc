@@ -747,7 +747,7 @@ const int MSG_INFO_REST_BITS = 1 + 4 + 4 + 64 + 32;
 
 ;; https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/block.tlb#L155
 ;; message$_ {X:Type} info:CommonMsgInfo
-;;  Maybe (Either StateInit ^StateInit)
+;;  init:Maybe (Either StateInit ^StateInit)
 ;;  body:(Either X ^X) = Message X;
 ;;
 ;;message$_ {X:Type} info:CommonMsgInfoRelaxed
