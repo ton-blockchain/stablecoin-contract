@@ -142,7 +142,7 @@
 
         ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
         var msg = begin_cell()
-        .store_msg_flags_and_address_none(BOUNCEABLE)
+        .store_msg_flags_and_address_none(NON_BOUNCEABLE)
         .store_slice(sender_address)
         .store_coins(0)
         .store_prefix_only_body()
