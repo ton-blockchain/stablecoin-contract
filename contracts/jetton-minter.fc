@@ -243,7 +243,7 @@
 cell build_content_cell(slice metadata_uri) inline {
     cell content_dict = new_dict();
     content_dict~set_token_snake_metadata_entry("uri"H, metadata_uri);
-    content_dict~set_token_snake_metadata_entry("decimals"H, "9");
+    content_dict~set_token_snake_metadata_entry("decimals"H, "6");
     return create_token_onchain_metadata(content_dict);
 }
 

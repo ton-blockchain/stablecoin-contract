@@ -566,7 +566,7 @@ describe('JettonWallet', () => {
         it('minter admin can change content', async () => {
             const oldContent = loadContent(await jettonMinter.getContent());
             expect(oldContent.get(await sha256('uri'))! === defaultContent.uri).toBe(true);
-            expect(oldContent.get(await sha256('decimals'))! === "9").toBe(true);
+            expect(oldContent.get(await sha256('decimals'))! === "6").toBe(true);
             let changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), newContent);
             expect(changeContent.transactions).toHaveTransaction({
                 on: jettonMinter.address,
@@ -580,13 +580,13 @@ describe('JettonWallet', () => {
             changeContent = await jettonMinter.sendChangeContent(deployer.getSender(), defaultContent);
             contentUpd  = loadContent(await jettonMinter.getContent());
             expect(oldContent.get(await sha256('uri'))! === defaultContent.uri).toBe(true);
-            expect(oldContent.get(await sha256('decimals'))! === "9").toBe(true);
+            expect(oldContent.get(await sha256('decimals'))! === "6").toBe(true);
         });
         it('not a minter admin can not change content', async () => {
             const oldContent = loadContent(await jettonMinter.getContent());
             let changeContent = await jettonMinter.sendChangeContent(notDeployer.getSender(), newContent);
             expect(oldContent.get(await sha256('uri'))).toEqual(defaultContent.uri);
-            expect(oldContent.get(await sha256('decimals'))).toEqual("9");
+            expect(oldContent.get(await sha256('decimals'))).toEqual("6");
 
             expect(changeContent.transactions).toHaveTransaction({
                 from: notDeployer.address,
