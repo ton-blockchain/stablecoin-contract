@@ -1,6 +1,6 @@
-import { sleep, NetworkProvider, UIProvider} from '@ton/blueprint';
-import { Address, beginCell, Builder, Cell, Dictionary, DictionaryValue, Slice } from "@ton/core";
-import { sha256 } from 'ton-crypto';
+import {NetworkProvider, sleep, UIProvider} from '@ton/blueprint';
+import {Address, beginCell, Builder, Cell, Dictionary, DictionaryValue, Slice, toNano} from "@ton/core";
+import {sha256} from 'ton-crypto';
 import {TonClient4} from "@ton/ton";
 
 export const defaultJettonKeys = ["uri", "name", "description", "image", "image_data", "symbol", "decimals", "amount_style"];
@@ -36,16 +36,20 @@ export const promptAddress = async (prompt:string, provider:UIProvider, fallback
 
 };
 
-export const promptAmount = async (prompt:string, provider:UIProvider) => {
-    let resAmount:number;
+export const promptAmount = async (prompt: string, provider: UIProvider) => {
+    let resAmount:bigint;
     do {
-        let inputAmount = await provider.input(prompt);
-        resAmount = Number(inputAmount);
-        if(isNaN(resAmount)) {
-            provider.write("Failed to convert " + inputAmount + " to float number");
-        }
-        else {
-            return resAmount.toFixed(9);
+        const inputAmount = await provider.input(prompt);
+        try {
+            resAmount = toNano(inputAmount);
+
+            if (resAmount <= 0) {
+                throw new Error("Please enter positive number");
+            }
+
+            return resAmount;
+        } catch (e: any) {
+            provider.write(e.message);
         }
     } while(true);
 }
@@ -161,4 +165,26 @@ export const promptUrl = async(prompt:string, ui:UIProvider) => {
         }
     } while(retry);
     return input;
+}
+
+export const explorerUrl = (address: string, isTestnet: boolean) => {
+    return (isTestnet ? 'https://testnet.tonscan.org/address/' : 'https://tonscan.org/address/') + address;
+}
+
+export const promptUserFriendlyAddress = async (prompt: string, provider: UIProvider, isTestnet: boolean) => {
+    do {
+        const s = await provider.input(prompt);
+        if (Address.isFriendly(s)) {
+            const address = Address.parseFriendly(s);
+            if (address.isTestOnly && !isTestnet) {
+                provider.write("Please enter mainnet address");
+                prompt = "Please try again:";
+            } else {
+                return address;
+            }
+        } else {
+            provider.write(s + " is not valid!\n");
+            prompt = "Please try again:";
+        }
+    } while (true);
 }
