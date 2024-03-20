@@ -4,32 +4,16 @@ import { JettonMinter, jettonMinterConfigCellToConfig, JettonMinterConfigFull, j
 import { promptBool, promptAmount, promptAddress, displayContentCell, getLastBlock, waitForTransaction, getAccountLastTx } from '../wrappers/ui-utils';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import {TonClient4} from "@ton/ton";
-let minterContract:OpenedContract<JettonMinter>;
 
 const adminActions  = ['Mint', 'Change admin', 'Upgrade', 'Lock', 'Unlock', 'Force transfer', 'Force burn'];
 const userActions   = ['Info', 'Claim admin', 'Quit'];
-let minterCode: Cell;
-let walletCode: Cell;
-
-
 
 const failedTransMessage = (ui:UIProvider) => {
     ui.write("Failed to get indication of transaction completion from API!\nCheck result manually, or try again\n");
 
 };
 
-const infoAction = async (provider:NetworkProvider, ui:UIProvider) => {
-    const jettonData = await minterContract.getJettonData();
-    ui.write("Jetton info:\n\n");
-    ui.write(`Admin:${jettonData.adminAddress}\n`);
-    ui.write(`Total supply:${fromNano(jettonData.totalSupply)}\n`);
-    ui.write(`Mintable:${jettonData.mintable}\n`);
-    const displayContent = await ui.choose('Display content?', ['Yes', 'No'], (c: string) => c);
-    if(displayContent == 'Yes') {
-        await displayContentCell(jettonData.content, ui);
-    }
-};
-const changeAdminAction = async(provider:NetworkProvider, ui:UIProvider) => {
+const changeAdminAction = async(provider:NetworkProvider, ui:UIProvider, minterContract:OpenedContract<JettonMinter>) => {
     let retry:boolean;
     let newAdmin:Address;
     let curAdmin = await minterContract.getAdminAddress();
@@ -61,7 +45,7 @@ const changeAdminAction = async(provider:NetworkProvider, ui:UIProvider) => {
     }
 };
 
-const claimAdminAction = async (provider: NetworkProvider, ui: UIProvider) => {
+const claimAdminAction = async (provider: NetworkProvider, ui: UIProvider, minterContract:OpenedContract<JettonMinter>) => {
     const prevAdmin = await minterContract.getAdminAddress();
     const lastTx   = await getAccountLastTx(provider, minterContract.address);
 
@@ -85,11 +69,11 @@ const claimAdminAction = async (provider: NetworkProvider, ui: UIProvider) => {
     }
 }
 
-const mintAction = async (provider:NetworkProvider, ui:UIProvider) => {
+const mintAction = async (provider:NetworkProvider, ui:UIProvider, minterContract:OpenedContract<JettonMinter>) => {
     const sender = provider.sender();
     let retry:boolean;
     let mintAddress:Address;
-    let mintAmount:string;
+    let mintAmount:bigint;
 
     do {
         retry = false;
@@ -102,7 +86,7 @@ const mintAction = async (provider:NetworkProvider, ui:UIProvider) => {
 
     ui.write(`Minting ${mintAmount} to ${mintAddress}\n`);
     const supplyBefore = await minterContract.getTotalSupply();
-    const nanoMint     = toNano(mintAmount);
+    const nanoMint     = mintAmount;
     const lastTx       = await getAccountLastTx(provider, minterContract.address);
 
     await minterContract.sendMint(sender,
@@ -127,7 +111,7 @@ const mintAction = async (provider:NetworkProvider, ui:UIProvider) => {
     }
 }
 
-const updateData = async (oldData: Cell, ui: UIProvider) => {
+const updateData = async (oldData: Cell, ui: UIProvider, walletCode: Cell) => {
     const curConfig   = jettonMinterConfigCellToConfig(oldData);
     let   newConfig: JettonMinterConfigFull;
     let   retry: boolean;
@@ -136,7 +120,7 @@ const updateData = async (oldData: Cell, ui: UIProvider) => {
         let   updateWallet = false;
         const updateSupply = await promptBool(`Current supply:${fromNano(curConfig.supply)}\nWant to change?`, ['Yes', 'No'], ui, true);
         if(updateSupply)
-            newConfig.supply   = toNano(await promptAmount('Enter new supply amount:', ui));
+            newConfig.supply   = await promptAmount('Enter new supply amount:', ui);
         const updateAdmin  = await promptBool(`Current admin:${curConfig.admin}\nWant to change?`, ['Yes', 'No'], ui, true);
         if(updateAdmin)
             newConfig.admin = await promptAddress('Enter new admin address:', ui);
@@ -163,7 +147,7 @@ const updateData = async (oldData: Cell, ui: UIProvider) => {
     } while(retry);
     return jettonMinterConfigFullToCell(newConfig);
 }
-const upgradeAction = async (provider: NetworkProvider, ui: UIProvider) => {
+const upgradeAction = async (provider: NetworkProvider, ui: UIProvider, minterContract:OpenedContract<JettonMinter>, minterCode: Cell, walletCode: Cell) => {
     const api = provider.api() as TonClient4;
     let upgradeCode = await promptBool(`Would you like to upgrade code?\nSource from jetton-minter.fc will be used.`, ['Yes', 'No'], ui, true);
     let upgradeData = await promptBool(`Would you like to upgrade data?`, ['Yes', 'No'], ui, true);
@@ -179,7 +163,7 @@ const upgradeAction = async (provider: NetworkProvider, ui: UIProvider) => {
     const dataBefore =  contractState.account.state.data ? Cell.fromBase64(contractState.account.state.data) : beginCell().endCell();
     if(upgradeCode || upgradeData) {
         const newCode = upgradeCode ? minterCode : Cell.fromBase64(contractState.account.state.code);
-        const newData = upgradeData ? await updateData(dataBefore, ui) : dataBefore;
+        const newData = upgradeData ? await updateData(dataBefore, ui, walletCode) : dataBefore;
         await minterContract.sendUpgrade(provider.sender(), newCode, newData, toNano('0.05'));
         const gotTrans = await waitForTransaction(provider,
                                                   minterContract.address,
@@ -223,7 +207,7 @@ const matchCodeFull = (contractState: AccountStateFull, code: Cell) => {
 }
 
 // Feels like i could have figured out something callback based instead of those three similar handlers...You've guessed it, not today.
-const lockAction = async (provider: NetworkProvider, ui: UIProvider, lock: boolean) => {
+const lockAction = async (provider: NetworkProvider, ui: UIProvider, lock: boolean, minterContract:OpenedContract<JettonMinter>, walletCode: Cell) => {
     const lockPrompt = lock ? 'lock' : 'unlock';
     let   retry: boolean;
     do {
@@ -274,7 +258,7 @@ const lockAction = async (provider: NetworkProvider, ui: UIProvider, lock: boole
     } while(retry);
 }
 
-const transferAction = async (provider: NetworkProvider, ui: UIProvider) => {
+const transferAction = async (provider: NetworkProvider, ui: UIProvider, minterContract:OpenedContract<JettonMinter>, walletCode: Cell) => {
     let   retry: boolean;
     do {
         const fromAddr = await promptAddress('Please enter jetton owner address to transfer from:', ui);
@@ -299,7 +283,7 @@ const transferAction = async (provider: NetworkProvider, ui: UIProvider) => {
                 retry = true;
                 continue;
             }
-            const nanoAmount = toNano(transferAmount);
+            const nanoAmount = transferAmount;
             const jettonWalelt = provider.open(JettonWallet.createFromAddress(jettonAddr));
             const balanceBefore = await jettonWalelt.getJettonBalance();
 
@@ -327,7 +311,7 @@ const transferAction = async (provider: NetworkProvider, ui: UIProvider) => {
     } while(retry);
 
 }
-const burnAction = async (provider: NetworkProvider, ui: UIProvider) => {
+const burnAction = async (provider: NetworkProvider, ui: UIProvider, minterContract:OpenedContract<JettonMinter>, walletCode: Cell) => {
     let   retry: boolean;
     do {
         const burnAddr = await promptAddress(`Please enter jetton owner address to burn:`, ui);
@@ -350,7 +334,7 @@ const burnAction = async (provider: NetworkProvider, ui: UIProvider) => {
                 retry = true;
                 continue;
             }
-            const nanoAmount = toNano(burnAmount);
+            const nanoAmount = burnAmount;
             const jettonWalelt = provider.open(JettonWallet.createFromAddress(jettonAddr));
             const balanceBefore = await jettonWalelt.getJettonBalance();
 
@@ -384,8 +368,8 @@ export async function run(provider: NetworkProvider) {
     const sender = provider.sender();
     const hasSender = sender.address !== undefined;
     const api    = provider.api() as TonClient4;
-    minterCode = await compile('JettonMinter');
-    walletCode = await compile('JettonWallet');
+    const minterCode = await compile('JettonMinter');
+    const walletCode = await compile('JettonWallet');
     let   done   = false;
     let   retry:boolean;
     let   minterAddress:Address;
@@ -408,7 +392,7 @@ export async function run(provider: NetworkProvider) {
         }
     } while(retry);
 
-    minterContract = provider.open(JettonMinter.createFromAddress(minterAddress));
+    const minterContract = provider.open(JettonMinter.createFromAddress(minterAddress));
     const isAdmin  = hasSender ? (await minterContract.getAdminAddress()).equals(sender.address) : true;
     let actionList:string[];
     if(isAdmin) {
@@ -425,31 +409,28 @@ export async function run(provider: NetworkProvider) {
         const action = await ui.choose("Pick action:", actionList, (c: string) => c);
         switch(action) {
             case 'Mint':
-                await mintAction(provider, ui);
+                await mintAction(provider, ui, minterContract);
                 break;
             case 'Change admin':
-                await changeAdminAction(provider, ui);
+                await changeAdminAction(provider, ui, minterContract);
                 break;
             case 'Claim admin':
-                await claimAdminAction(provider, ui);
+                await claimAdminAction(provider, ui, minterContract);
                 break;
             case 'Upgrade':
-                await upgradeAction(provider, ui);
-                break;
-            case 'Info':
-                await infoAction(provider, ui);
+                await upgradeAction(provider, ui, minterContract, minterCode, walletCode);
                 break;
             case 'Lock':
-                await lockAction(provider, ui, true);
+                await lockAction(provider, ui, true, minterContract, walletCode);
                 break;
             case 'Unlock':
-                await lockAction(provider, ui, false);
+                await lockAction(provider, ui, false, minterContract, walletCode);
                 break;
             case 'Force transfer':
-                await transferAction(provider, ui);
+                await transferAction(provider, ui, minterContract, walletCode);
                 break;
             case 'Force burn':
-                await burnAction(provider, ui);
+                await burnAction(provider, ui, minterContract, walletCode);
                 break;
             case 'Quit':
                 done = true;

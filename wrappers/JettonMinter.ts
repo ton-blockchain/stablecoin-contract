@@ -33,6 +33,9 @@ export function jettonMinterConfigCellToConfig(config: Cell) : JettonMinterConfi
     }
 }
 
+export function parseJettonMinterData(data: Cell): JettonMinterConfigFull {
+    return jettonMinterConfigCellToConfig(data);
+}
 
 export function jettonMinterConfigFullToCell(config: JettonMinterConfigFull): Cell {
     const content = config.jetton_content instanceof Cell ? config.jetton_content : jettonContentToCell(config.jetton_content);
@@ -316,5 +319,10 @@ export class JettonMinter implements Contract {
     async getContent(provider: ContractProvider) {
         let res = await this.getJettonData(provider);
         return res.content;
+    }
+
+    async getNextAdminAddress(provider: ContractProvider) {
+        const res = await provider.get('get_next_admin_address', []);
+        return res.stack.readAddressOpt();
     }
 }
