@@ -1,6 +1,6 @@
 import {Librarian} from '../wrappers/Librarian';
 import {compile, NetworkProvider} from '@ton/blueprint';
-import {promptAmount} from "../wrappers/ui-utils";
+import {promptToncoin} from "../wrappers/ui-utils";
 
 export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
@@ -10,7 +10,7 @@ export async function run(provider: NetworkProvider) {
     const jettonWalletCodeRaw = await compile('JettonWallet');
     const librarianCode = await compile('Librarian');
 
-    const tonAmount = await promptAmount("Enter Toncoin amount to deploy librarian. Some of Toncoins will reserved on the contract to pay storage fees. Excess will be returned.", ui);
+    const tonAmount = await promptToncoin("Enter Toncoin amount to deploy librarian. Some of Toncoins will reserved on the contract to pay storage fees. Excess will be returned.", ui);
     const librarian = provider.open(Librarian.createFromConfig({code: jettonWalletCodeRaw}, librarianCode));
     await librarian.sendDeploy(provider.sender(), tonAmount);
 }

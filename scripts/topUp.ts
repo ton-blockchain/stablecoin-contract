@@ -1,6 +1,7 @@
 import {compile, NetworkProvider} from '@ton/blueprint';
-import {jettonWalletCodeFromLibrary, promptUserFriendlyAddress} from "../wrappers/ui-utils";
+import {jettonWalletCodeFromLibrary, promptBool, promptToncoin, promptUserFriendlyAddress} from "../wrappers/ui-utils";
 import {checkJettonMinter} from "./JettonMinterChecker";
+import {fromNano} from "@ton/core";
 
 export async function run(provider: NetworkProvider) {
     const isTestnet = provider.network() !== 'mainnet';
@@ -14,7 +15,18 @@ export async function run(provider: NetworkProvider) {
     const jettonMinterAddress = await promptUserFriendlyAddress("Enter the address of the jetton minter", ui, isTestnet);
 
     try {
-        await checkJettonMinter(jettonMinterAddress, jettonMinterCode, jettonWalletCode, provider, ui, isTestnet, false);
+        const {jettonMinterContract} = await checkJettonMinter(jettonMinterAddress, jettonMinterCode, jettonWalletCode, provider, ui, isTestnet, true);
+
+        const tonAmount = await promptToncoin("Enter Toncoin amount to top-up jetton-minter Toncoins balance.", ui);
+
+        if (!(await promptBool(`${fromNano(tonAmount)} TON top-up ?`, ['yes', 'no'], ui))) {
+            return;
+        }
+
+        await jettonMinterContract.sendTopUp(provider.sender(), tonAmount);
+
+        ui.write('Transaction sent');
+
     } catch (e: any) {
         ui.write(e.message);
         return;

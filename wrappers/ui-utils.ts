@@ -1,8 +1,10 @@
 import {NetworkProvider, sleep, UIProvider} from '@ton/blueprint';
-import {Address, beginCell, Builder, Cell, Dictionary, DictionaryValue, Slice, toNano} from "@ton/core";
+import {Address, beginCell, Builder, Cell, Dictionary, DictionaryValue, Slice} from "@ton/core";
 import {sha256} from 'ton-crypto';
 import {TonClient4} from "@ton/ton";
 import {base64Decode} from "@ton/sandbox/dist/utils/base64";
+import {LOCK_TYPES, LockType} from "./JettonMinter";
+import {toUnits} from "../scripts/units";
 
 export const defaultJettonKeys = ["uri", "name", "description", "image", "image_data", "symbol", "decimals", "amount_style"];
 export const defaultNftKeys = ["uri", "name", "description", "image", "image_data"];
@@ -36,12 +38,16 @@ export const promptAddress = async (prompt: string, provider: UIProvider, fallba
 
 };
 
-export const promptAmount = async (prompt: string, provider: UIProvider) => {
+export const promptToncoin = async (prompt: string, provider: UIProvider) => {
+    return promptAmount(prompt, 9, provider);
+}
+
+export const promptAmount = async (prompt: string, decimals: number, provider: UIProvider) => {
     let resAmount: bigint;
     do {
         const inputAmount = await provider.input(prompt);
         try {
-            resAmount = toNano(inputAmount);
+            resAmount = toUnits(inputAmount, decimals);
 
             if (resAmount <= 0) {
                 throw new Error("Please enter positive number");
@@ -183,6 +189,32 @@ export const promptUserFriendlyAddress = async (prompt: string, provider: UIProv
         } else {
             provider.write(s + " is not valid!\n");
             prompt = "Please try again:";
+        }
+    } while (true);
+}
+
+export const lockTypeToName = (lockType: LockType): string => {
+    switch (lockType) {
+        case 'unlock':
+            return "Unlocked";
+        case 'out':
+            return "Can't send";
+        case 'in':
+            return "Can't receive";
+        case 'full':
+            return "Can't send and receive";
+        default:
+            throw new Error("Invalid argument!");
+    }
+}
+
+export const promptLockType = async (prompt: string, provider: UIProvider): Promise<LockType> => {
+    do {
+        const s = await provider.input(prompt);
+        if (LOCK_TYPES.indexOf(s) === -1) {
+            provider.write(s + " is not valid!\n");
+        } else {
+            return s as LockType;
         }
     } while (true);
 }
