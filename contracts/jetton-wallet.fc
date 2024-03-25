@@ -58,7 +58,6 @@
     in_msg_body~skip_maybe_ref(); ;; custom_payload
     int forward_ton_amount = in_msg_body~load_coins();
     check_either_forward_payload(in_msg_body);
-    slice either_forward_payload = in_msg_body;
 
     ;; see internal TL-B layout in jetton.tlb
     cell msg_body = begin_cell()
@@ -68,7 +67,7 @@
     .store_slice(owner_address)
     .store_slice(response_address)
     .store_coins(forward_ton_amount)
-    .store_slice(either_forward_payload)
+    .store_slice(in_msg_body)
     .end_cell();
 
     ;; build MessageRelaxed, see TL-B layout in stdlib.fc#L733
