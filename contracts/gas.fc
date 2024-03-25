@@ -14,7 +14,6 @@ const MIN_STORAGE_DURATION = 5 * 365 * 24 * 3600; ;; 5 years
 ;;- Transfer [/sandbox_tests/JettonWallet.spec.ts#L935](L935) `0.028627415` TON
 ;;- Burn [/sandbox_tests/JettonWallet.spec.ts#L1185](L1185) `0.016492002` TON
 
-
 ;;## Storage
 ;;
 ;;Get calculated in a separate test file [/sandbox_tests/StateInit.spec.ts](StateInit.spec.ts)
@@ -55,7 +54,6 @@ const SEND_BURN_GAS_CONSUMPTION    = 5791;
 ;;- `RECEIVE_BURN_GAS_CONSUMPTION` [/sandbox_tests/JettonWallet.spec.ts#L1155](L1155)
 const RECEIVE_BURN_GAS_CONSUMPTION = 6775;
 
-
 int calculate_jetton_wallet_min_storage_fee() inline {
     return get_storage_fee(MY_WORKCHAIN, MIN_STORAGE_DURATION, JETTON_WALLET_BITS, JETTON_WALLET_CELLS);
 }
@@ -81,8 +79,6 @@ int forward_init_state_overhead() inline {
     get_compute_fee(MY_WORKCHAIN, receive_transfer_gas_consumption) +
     calculate_jetton_wallet_min_storage_fee() );
 }
-
-
 
 () check_amount_is_enough_to_burn(int msg_value) impure inline {
     int jetton_wallet_gas_consumption = get_precompiled_gas_consumption();
