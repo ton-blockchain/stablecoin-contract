@@ -157,6 +157,7 @@
     int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
     throw_unless(error::not_owner, is_from_master);
     throw_unless(error::balance_error, balance >= 0);
+    check_amount_is_enough_to_burn(msg_value);
 
     ;; see burn_notification TL-B layout in jetton.tlb
     cell msg_body = begin_cell()
@@ -174,8 +175,6 @@
     .store_coins(0)
     .store_only_body_ref(msg_body)
     .end_cell();
-
-    check_amount_is_enough_to_burn(msg_value);
 
     send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
