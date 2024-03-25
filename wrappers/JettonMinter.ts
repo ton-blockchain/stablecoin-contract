@@ -176,13 +176,13 @@ export class JettonMinter implements Contract {
         const op = slice.loadUint(32);
         if (op !== Op.mint) throw new Error('Invalid op');
         const queryId = slice.loadUint(64);
-        const jettonMinterAddress = slice.loadAddress();
+        const toAddress = slice.loadAddress();
         const tonAmount = slice.loadCoins();
         const mintMsg = slice.loadRef();
         endParse(slice);
         return {
             queryId,
-            jettonMinterAddress,
+            toAddress,
             tonAmount,
             internalMessage: this.parseMintInternalMessage(mintMsg.beginParse())
         }
@@ -341,13 +341,13 @@ export class JettonMinter implements Contract {
         const op = slice.loadUint(32);
         if (op !== Op.call_to) throw new Error('Invalid op');
         const queryId = slice.loadUint(64);
-        const jettonWalletAddress = slice.loadAddress();
+        const toAddress = slice.loadAddress();
         const tonAmount = slice.loadCoins();
         const ref = slice.loadRef();
         endParse(slice);
         return {
             queryId,
-            jettonWalletAddress,
+            toAddress,
             tonAmount,
             action: refPrser(ref.beginParse())
         }
