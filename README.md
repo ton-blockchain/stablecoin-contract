@@ -47,8 +47,6 @@ API_KEY can be obtained on https://toncenter.com or https://testnet.toncenter.co
 ## Notes
 
 - The jetton-wallet contract does not include functionality that allows the owner to withdraw Toncoin funds from jetton-wallet Toncoin balance.
-   The jetton-wallet contract is hidden "under the hood" and users do not know about it, because wallet applications and services simply show the balance of jettons.
-   So we would not like to complicate the contract code with this additional non-purposeful logic.
 
 - The contract prices gas based on the *current* blockchain configuration. 
    It is worth keeping in mind the situation when the configuration has changed at the moment when the message goes from one jetton-wallet to another.
