@@ -14,10 +14,7 @@ cell empty() asm "<b b> PUSHREF";
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
     slice sender = cs~load_msg_addr();
-
-
     cell lib_to_publish = get_data();
-
     int initial_gas = gas_consumed();
     (int order_cells, int order_bits, _) = compute_data_size(lib_to_publish, 2048);
     int size_counting_gas = gas_consumed() - initial_gas;
