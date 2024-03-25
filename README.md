@@ -1,6 +1,6 @@
-# TON-STABLE
+# Jetton with Governance
 
-FunC smart contracts for Stable Jetton on TON (for instance equivalent of US Dollar) issued by central entity.
+Jetton-with-governance FunC smart contracts. 
 
 # Targets and goals
 
@@ -21,8 +21,6 @@ __⚠️ It is critically important for issuer to carefully manage the admin's a
 __⚠️ The contract does not check the code and data on `upgrade` message, so it is possible to brick the contract if you send invalid data or code. Therefore you should always check the upgrade in the testnet.__
 
 # Local Development
-
-The following assumes the use of `node@>=16` and requires `func` and `fift` executable installed and in path.
 
 ## Install Dependencies
 
@@ -45,3 +43,14 @@ use Toncenter API:
 `npx blueprint run --custom https://testnet.toncenter.com/api/v2/ --custom-version v2 --custom-type testnet --custom-key <API_KEY> `
 
 API_KEY can be obtained on https://toncenter.com or https://testnet.toncenter.com
+
+## Notes
+
+- The jetton-wallet contract does not include functionality that allows the owner to withdraw Toncoin funds from jetton-wallet Toncoin balance.
+   The jetton-wallet contract is hidden "under the hood" and users do not know about it, because wallet applications and services simply show the balance of jettons.
+   So we would not like to complicate the contract code with this additional non-purposeful logic.
+
+- The contract prices gas based on the *current* blockchain configuration. 
+   It is worth keeping in mind the situation when the configuration has changed at the moment when the message goes from one jetton-wallet to another.
+   Reducing fees in a blockchain configuration does not require additional actions.
+   However, increasing fees in a blockchain configuration requires preliminary preparation - e.g. wallets and services must start sending Toncoins for gas in advance based on future parameters.
