@@ -38,11 +38,11 @@
 }
 
 () send_jettons(slice in_msg_body, slice sender_address, int msg_value, int fwd_fee) impure inline_ref {
+    slice to_owner_address = in_msg_body~load_msg_addr();
+    check_same_workchain(to_owner_address);
     ;; see transfer TL-B layout in jetton.tlb
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
-    slice to_owner_address = in_msg_body~load_msg_addr();
-    check_same_workchain(to_owner_address);
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
     int outgoing_transfers_unlocked = ((status & 1) == 0);
@@ -87,6 +87,8 @@
 }
 
 () receive_jettons(slice in_msg_body, slice sender_address, int my_ton_balance, int msg_value) impure inline_ref {
+    slice to_owner_address = in_msg_body~load_msg_addr();
+    check_same_workchain(to_owner_address);
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int incoming_transfers_locked = ((status & 2) == 2);
     throw_if(error::contract_locked, incoming_transfers_locked);
