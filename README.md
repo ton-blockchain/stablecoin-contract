@@ -53,4 +53,5 @@ API_KEY can be obtained on https://toncenter.com or https://testnet.toncenter.co
    Reducing fees in a blockchain configuration does not require additional actions.
    However, increasing fees in a blockchain configuration requires preliminary preparation - e.g. wallets and services must start sending Toncoins for gas in advance based on future parameters.
 
-- If you set the status of Jetton Wallet to prohibit receiving jettons - there is no guarantee that when you send jettons to such a jetton-wallet, they will bounce back and be credited to the sender. In case of gas shortage they can be lost.
+- If you set the status of Jetton Wallet to prohibit receiving jettons - there is no guarantee that when you send jettons to such a jetton-wallet, jettons will bounce back and be credited to the sender. In case of gas shortage they can be lost.
+   Toncoin for gas and forward will also not be returned to the sender but will remain on the sender’s jetton-wallet.
