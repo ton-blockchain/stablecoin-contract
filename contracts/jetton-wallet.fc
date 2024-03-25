@@ -146,6 +146,8 @@
 }
 
 () burn_jettons(slice in_msg_body, slice sender_address, int msg_value) impure inline_ref {
+    slice to_owner_address = in_msg_body~load_msg_addr();
+    check_same_workchain(to_owner_address);
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int query_id = in_msg_body~load_query_id();
     int jetton_amount = in_msg_body~load_coins();
