@@ -56,8 +56,9 @@
     slice to_wallet_address = calculate_jetton_wallet_address(state_init);
     slice response_address = in_msg_body~load_msg_addr();
     in_msg_body~skip_maybe_ref(); ;; custom_payload
-    int forward_ton_amount = in_msg_body~load_coins();
     check_either_forward_payload(in_msg_body);
+    int forward_ton_amount = in_msg_body~load_coins();
+    check_amount_is_enough_to_transfer(msg_value, forward_ton_amount, fwd_fee);
     slice either_forward_payload = in_msg_body;
 
     ;; see internal TL-B layout in jetton.tlb
@@ -78,8 +79,6 @@
     .store_coins(0)
     .store_statinit_ref_and_body_ref(state_init, msg_body)
     .end_cell();
-
-    check_amount_is_enough_to_transfer(msg_value, forward_ton_amount, fwd_fee);
 
     send_raw_message(msg, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_ON_ACTION_FAIL);
 
