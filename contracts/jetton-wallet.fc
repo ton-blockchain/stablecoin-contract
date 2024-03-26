@@ -139,6 +139,7 @@
         .store_op(op::excesses)
         .store_query_id(query_id)
         .end_cell();
+
         send_raw_message(msg, SEND_MODE_CARRY_ALL_BALANCE | SEND_MODE_IGNORE_ERRORS);
     }
 
