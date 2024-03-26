@@ -44,6 +44,9 @@
     slice to_owner_address = in_msg_body~load_msg_addr();
     check_same_workchain(to_owner_address);
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
+    check_same_workchain(owner_address);
+    check_same_workchain(jetton_master_address);
+    check_same_workchain(sender_address);
     int is_from_master = equal_slices_bits(jetton_master_address, sender_address);
     int outgoing_transfers_unlocked = ((status & 1) == 0);
     throw_unless(error::contract_locked, outgoing_transfers_unlocked | is_from_master);
