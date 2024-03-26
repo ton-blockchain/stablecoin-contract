@@ -37,7 +37,7 @@ _ grams:Grams = Coins;
 // TEP - 74
 // https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
 
-transfer#0f8a7ea5
+transfer#f8a7ea5
   query_id:uint64
   amount:Coins
   destination:MsgAddress
