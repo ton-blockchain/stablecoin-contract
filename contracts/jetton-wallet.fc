@@ -101,8 +101,8 @@
         |
         equal_slices_bits(calculate_user_jetton_wallet_address(from_address, jetton_master_address, my_code()), sender_address)
     );
-    int forward_ton_amount = in_msg_body~load_coins();
 
+    int forward_ton_amount = in_msg_body~load_coins();
     if (forward_ton_amount) {
         slice either_forward_payload = in_msg_body;
 
