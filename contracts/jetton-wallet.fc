@@ -183,6 +183,9 @@
 }
 
 () on_bounce(slice in_msg_body) impure inline {
+    if (in_msg_body.slice_empty?()) { ;; ignore empty messages
+      return ();
+    }
     in_msg_body~skip_bounced_prefix();
     (int status, int balance, slice owner_address, slice jetton_master_address) = load_data();
     int op = in_msg_body~load_op();
