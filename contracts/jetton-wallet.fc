@@ -97,19 +97,19 @@
     slice from_address = in_msg_body~load_msg_addr();
     slice response_address = in_msg_body~load_msg_addr();
     throw_unless(
-        error::not_valid_wallet,
-        equal_slices_bits(
+      error::not_valid_wallet,
+      equal_slices_bits(
+        jetton_master_address,
+        sender_address
+      ) |
+      equal_slices_bits(
+        calculate_user_jetton_wallet_address(
+          from_address,
           jetton_master_address,
-          sender_address
-        ) |
-        equal_slices_bits(
-          calculate_user_jetton_wallet_address(
-            from_address,
-            jetton_master_address,
-            my_code()
-          ),
-          sender_address
-        )
+          my_code()
+        ),
+        sender_address
+      )
     );
     int forward_ton_amount = in_msg_body~load_coins();
 
