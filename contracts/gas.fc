@@ -79,7 +79,7 @@ int forward_init_state_overhead() inline {
     forward_init_state_overhead() + ;; additional fwd fees related to initstate in iternal_transfer
     get_compute_fee(MY_WORKCHAIN, send_transfer_gas_consumption) +
     get_compute_fee(MY_WORKCHAIN, receive_transfer_gas_consumption) +
-    calculate_jetton_wallet_min_storage_fee() );
+    calculate_jetton_wallet_min_storage_fee());
 }
 
 
