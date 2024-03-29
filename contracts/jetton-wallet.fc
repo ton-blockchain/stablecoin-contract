@@ -200,13 +200,13 @@
         return ();
     }
     slice sender_address = in_msg_full_slice~load_msg_addr();
-    int fwd_fee_from_in_msg = in_msg_full_slice~retrieve_fwd_fee();
-    int fwd_fee = get_original_fwd_fee(MY_WORKCHAIN, fwd_fee_from_in_msg); ;; we use message fwd_fee for estimation of forward_payload costs
 
     int op = in_msg_body~load_op();
 
     ;; outgoing transfer
     if (op == op::transfer) {
+        int fwd_fee_from_in_msg = in_msg_full_slice~retrieve_fwd_fee();
+        int fwd_fee = get_original_fwd_fee(MY_WORKCHAIN, fwd_fee_from_in_msg); ;; we use message fwd_fee for estimation of forward_payload costs
         send_jettons(in_msg_body, sender_address, msg_value, fwd_fee);
         return ();
     }
