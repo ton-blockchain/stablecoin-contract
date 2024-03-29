@@ -189,7 +189,8 @@
     throw_unless(error::wrong_op, (op == op::internal_transfer) | (op == op::burn_notification));
     in_msg_body~skip_query_id();
     int jetton_amount = in_msg_body~load_coins();
-    save_data(status, balance + jetton_amount, owner_address, jetton_master_address);
+    jetton_amount += balance;
+    save_data(status, jetton_amount, owner_address, jetton_master_address);
 }
 
 () recv_internal(int my_ton_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
