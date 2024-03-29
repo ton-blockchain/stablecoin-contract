@@ -205,19 +205,16 @@
 
     int op = in_msg_body~load_op();
 
-    ;; outgoing transfer
     if (op == op::transfer) {
         send_jettons(in_msg_body, sender_address, msg_value, fwd_fee);
         return ();
     }
 
-    ;; incoming transfer
     if (op == op::internal_transfer) {
         receive_jettons(in_msg_body, sender_address, my_ton_balance, msg_value);
         return ();
     }
 
-    ;; burn
     if (op == op::burn) {
         burn_jettons(in_msg_body, sender_address, msg_value);
         return ();
