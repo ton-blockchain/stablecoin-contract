@@ -139,11 +139,13 @@ call_to#235caf52
   master_msg:^JettonMsg
   = JettonMinterMsg;
 
-upgrade#2508d66a
+upgrade#2ea15808
+  query_id:uint64
   new_data:^Cell
   new_code:^Cell
   = JettonMinterMsg;
 
-change_metadata_uri#cb862902
+change_metadata_uri#70e8e889
+  query_id:uint64
   metadata:Cell
   = JettonMinterMsg;
