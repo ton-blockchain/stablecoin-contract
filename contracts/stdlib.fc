@@ -691,6 +691,19 @@ builder store_address_none(builder b) inline {
     return b.store_uint(0, 2);
 }
 
+;; EMPTY LIBRARIES
+
+builder store_empty_libraries(builder b) inline {
+    return b.store_uint(0, 1);
+}
+
+;; NO ANYCAST
+;; 0b100 = addr_std$10 tag;
+
+builder store_empty_libraries(builder b) inline {
+    return b.store_uint(4, 3);
+}
+
 slice address_none() asm "<b 0 2 u, b> <s PUSHSLICE";
 
 int is_address_none(slice s) inline {
