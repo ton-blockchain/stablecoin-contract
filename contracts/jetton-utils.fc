@@ -19,7 +19,7 @@ cell calculate_jetton_wallet_state_init(slice owner_address, slice jetton_master
     library:(Maybe ^Cell) = StateInit;
   -}
     return begin_cell()
-    .store_uint(0, 2) ;; 0b00 - No split_depth; No special
+    .store_address_none()
     .store_maybe_ref(jetton_wallet_code)
     .store_maybe_ref(
         pack_jetton_wallet_data(
