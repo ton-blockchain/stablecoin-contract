@@ -1,10 +1,31 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, toNano } from '@ton/core';
 import { Op } from './JettonConstants';
+import {endParse} from "./JettonMinter";
 
-export type JettonWalletConfig = {};
+export type JettonWalletConfig = {
+    ownerAddress: Address,
+    jettonMasterAddress: Address
+};
 
 export function jettonWalletConfigToCell(config: JettonWalletConfig): Cell {
-    return beginCell().endCell();
+    return beginCell()
+        .storeUint(0, 4) // status
+        .storeCoins(0) // jetton balance
+        .storeAddress(config.ownerAddress)
+        .storeAddress(config.jettonMasterAddress)
+        .endCell();
+}
+
+export function parseJettonWalletData(data: Cell) {
+    const sc = data.beginParse()
+    const parsed = {
+        status: sc.loadUint(4),
+        balance: sc.loadCoins(),
+        ownerAddress: sc.loadAddress(),
+        jettonMasterAddress: sc.loadAddress(),
+    };
+    endParse(sc);
+    return parsed;
 }
 
 export class JettonWallet implements Contract {
