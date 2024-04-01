@@ -700,7 +700,7 @@ builder store_empty_libraries(builder b) inline {
 ;; NO ANYCAST
 ;; 0b100 = addr_std$10 tag;
 
-builder store_empty_libraries(builder b) inline {
+builder store_no_anycast(builder b) inline {
     return b.store_uint(4, 3);
 }
 
