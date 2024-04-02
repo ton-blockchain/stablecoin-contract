@@ -110,7 +110,7 @@ export function jettonMinterConfigToCell(config: JettonMinterConfig): Cell {
 
 export function jettonContentToCell(content: JettonMinterContent) {
     return beginCell()
-        .storeStringTail(content.uri) //Snake logic under the hood
+        .storeStringRefTail(content.uri) //Snake logic under the hood
         .endCell();
 }
 
