@@ -1,57 +1,70 @@
-# Jetton with Governance
+# MyTonWallet · [mytonwallet.io](https://mytonwallet.io)
 
-Jetton-with-governance FunC smart contracts. 
+**The most feature-rich web wallet and browser extension for the [TON Network](https://ton.org)** – with support of jettons, NFT, TON DNS, TON Sites, TON Proxy, and TON Magic.
 
-# Targets and goals
+<img src="https://user-images.githubusercontent.com/102837730/193835310-1436afcd-ed78-4656-92c3-9c8f4beacacf.png" width="600" />
 
-This project was created to allow users to exchange and buy assets in the TON DeFi ecosystem for a jetton (token or currency) that is not subject to volatile fluctuations. To meet regulatory requirements, the issuer of the tokens must have additional control over the tokens.
+The wallet is **self-custodial and safe**. The developers **do not** have access to funds, browser history or any other information. We focus on **speed**, **size** and **attention to detail**. We try to avoid using third-party libraries to ensure maximum reliability and safety, and also to lower the bundle size.
 
-Thus this jetton represents a [standard TON jetton smart contracts](https://github.com/ton-blockchain/token-contract/tree/369ae089255edbd807eb499792a0a838c2e1b272/ft) with additional functionality:
+## Table of contents
 
-- Admin of jetton can make transfers from user's jetton wallet.
+- [Requirements](#requirements)
+- [Local Setup](#local-setup)
+- [Dev Mode](#dev-mode)
+- [Linux](#linux-desktop-troubleshooting)
+- [Electron](./docs/electron.md)
+- [Verifying GPG Signatures](./docs/gpg-check.md)
+- [Support Us](#support-us)
 
-- Admin of jetton can burn user's jettons.
+## Requirements
 
-- Admin of jetton can lock/unlock user's jetton wallet (`set_status`). Admin can make transfer and burn even if wallet locked.
+Ready to build on **macOS** and **Linux**.
 
-- Admin of jetton can change jetton-minter code and it's full data.
+To build on **Windows**, you will also need:
 
-__⚠️ It is critically important for issuer to carefully manage the admin's account private key to avoid any potential risks of being hacked. It is highly recommend to use multi-signature wallet as admin account with private keys stored on different air-gapped hosts / hardware wallets.__
+- Any terminal emulator with bash (Git Bash, MinGW, Cygwin)
+- A zip utility (for several commands)
 
-__⚠️ The contract does not check the code and data on `upgrade` message, so it is possible to brick the contract if you send invalid data or code. Therefore you should always check the upgrade in the testnet.__
+## Local Setup
 
-# Local Development
+```sh
+mv .env.example .env
 
-## Install Dependencies
+npm i
+```
 
-`npm install`
+## Dev Mode
 
-## Compile Contracts
+```sh
+npm run dev
+```
 
-`npm run build`
+## Linux Desktop Troubleshooting
 
-## Run Tests
+**If the app does not start after click:**
 
-`npm run test`
+Install the [FUSE 2 library](https://github.com/AppImage/AppImageKit/wiki/FUSE).
 
-### Deploy or run another script
+**If the app does not appear in the system menu or does not process ton:// and TON Connect deeplinks:**
 
-`npx blueprint run` or `yarn blueprint run`
+Install [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher) and install the AppImage file through it.
 
-use Toncenter API:
+```bash
+sudo add-apt-repository ppa:appimagelauncher-team/stable
+sudo apt-get update
+sudo apt-get install appimagelauncher
+```
 
-`npx blueprint run --custom https://testnet.toncenter.com/api/v2/ --custom-version v2 --custom-type testnet --custom-key <API_KEY> `
+**If the app does not connect to Ledger:**
 
-API_KEY can be obtained on https://toncenter.com or https://testnet.toncenter.com
+Copy the udev rules from the [official repository](https://github.com/LedgerHQ/udev-rules) and run the file `add_udev_rules.sh` with root rights.
 
-## Notes
+```bash
+git clone https://github.com/LedgerHQ/udev-rules
+cd udev-rules
+sudo bash ./add_udev_rules.sh
+```
 
-- The jetton-wallet contract does not include functionality that allows the owner to withdraw Toncoin funds from jetton-wallet Toncoin balance.
+## Support Us
 
-- The contract prices gas based on the *current* blockchain configuration. 
-   It is worth keeping in mind the situation when the configuration has changed at the moment when the message goes from one jetton-wallet to another.
-   Reducing fees in a blockchain configuration does not require additional actions.
-   However, increasing fees in a blockchain configuration requires preliminary preparation - e.g. wallets and services must start sending Toncoins for gas in advance based on future parameters.
-
-- If you set the status of Jetton Wallet to prohibit receiving jettons - there is no guarantee that when you send jettons to such a jetton-wallet, jettons will bounce back and be credited to the sender. In case of gas shortage they can be lost.
-   Toncoin for gas and forward will also not be returned to the sender but will remain on the sender’s jetton-wallet.
+If you like what we do, feel free to contribute by creating a pull request, or just support us using this TON wallet: `EQAIsixsrb93f9kDyplo_bK5OdgW5r0WCcIJZdGOUG1B282S`. We appreciate it a lot!
