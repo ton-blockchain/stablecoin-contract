@@ -45,7 +45,7 @@ And create awallet.
 
 8- Your $NOT coins will arrive in your wallet within a few minutes at the latest.
 
-9- Remember that you will use the Tone network to send the $NOT coin to your Telegram wallet or to the listed exchanges.
+9- Remember that you will use the Ton network to send the $NOT coin to your Telegram wallet or to the listed exchanges.
 
 ## Table of contents
 
