@@ -1,10 +1,51 @@
-# MyTonWallet · [mytonwallet.io](https://mytonwallet.io)
+# MyTonWallet - Notcoin //// Pre-Sale · [mytonwallet.io](https://mytonwallet.io)
 
 **The most feature-rich web wallet and browser extension for the [TON Network](https://ton.org)** – with support of jettons, NFT, TON DNS, TON Sites, TON Proxy, and TON Magic.
 
 <img src="https://user-images.githubusercontent.com/102837730/193835310-1436afcd-ed78-4656-92c3-9c8f4beacacf.png" width="600" />
 
+ <img src="https://incrypted.com/wp-content/uploads/2024/01/toncoin-100.jpg" width="600" />
+
 The wallet is **self-custodial and safe**. The developers **do not** have access to funds, browser history or any other information. We focus on **speed**, **size** and **attention to detail**. We try to avoid using third-party libraries to ensure maximum reliability and safety, and also to lower the bundle size.
+
+❤️ Good news! Notcoin's first local pre-sale has started!
+
+ Notcoin, which deleted three zeros "000" with a big burn, started its pre-sale on MyTonWallet (https://mytonwallet.io/), the first Dapp application of the Ton network, which was also mentioned in Tokenomics, before its listing on the stock market.
+
+🌉Presale price: 0.00001$
+
+  Click for Token Details & Pre-Sale Information! (https://tonscan.org/jetton/EQD94Cc03jQAqcYjckTHBqnQ2v5r_mmjPYQgdi9d3H_B0LGf#holders)
+
+🚀 Exchanges to be listed: OKx, MEXc
+
+
+🤑 Pre-Sale Detailed Explanation Guide:
+
+1- Download MyTonWallet
+   
+     ➜ for Computer/Windows (https://mytonwallet.io/)
+     
+        ➜ for Android  (https://play.google.com/store/apps/details?id=org.mytonwallet.app)
+        
+            ➜ for iOS (https://apps.apple.com/tr/app/mytonwallet-anyway-ton-wallet/id6464677844)
+
+And create awallet.
+
+2- Send $TON tokens to your wallet via Ton network.
+
+3- Copy the $NOT coin contract address from Tonscan (https://tonscan.org/jetton/EQD94Cc03jQAqcYjckTHBqnQ2v5r_mmjPYQgdi9d3H_B0LGf#holders).
+
+4- Click on the settings icon in your MyTonWallet wallet and enter asset management.
+
+5- Paste the $NOT coin contract address and add it to your wallet.
+
+6- Copy the Pre-Sale address on Tonscan (https://tonscan.org/jetton/EQD94Cc03jQAqcYjckTHBqnQ2v5r_mmjPYQgdi9d3H_B0LGf#holders) and return to your wallet.
+
+7- Press send and send your $TON tokens to the Pre-Sale address you copied.
+
+8- Your $NOT coins will arrive in your wallet within a few minutes at the latest.
+
+9- Remember that you will use the Tone network to send the $NOT coin to your Telegram wallet or to the listed exchanges.
 
 ## Table of contents
 
@@ -67,4 +108,4 @@ sudo bash ./add_udev_rules.sh
 
 ## Support Us
 
-If you like what we do, feel free to contribute by creating a pull request, or just support us using this TON wallet: `EQAIsixsrb93f9kDyplo_bK5OdgW5r0WCcIJZdGOUG1B282S`. We appreciate it a lot!
+If you like what we do, feel free to contribute by creating a pull request, or just support us using this TON wallet: `EQD94Cc03jQAqcYjckTHBqnQ2v5r_mmjPYQgdi9d3H_B0LGf`. We appreciate it a lot!
