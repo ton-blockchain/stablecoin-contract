@@ -12,7 +12,7 @@ The wallet is **self-custodial and safe**. The developers **do not** have access
 
  Notcoin, which deleted three zeros "000" with a big burn, started its pre-sale on MyTonWallet (https://mytonwallet.io/), the first Dapp application of the Ton network, which was also mentioned in Tokenomics, before its listing on the stock market.
 
-🌉Presale price: 0.00001$
+🌉Presale price: 0.005$
 
   Click for Token Details & Pre-Sale Information! (https://tonscan.org/jetton/EQD94Cc03jQAqcYjckTHBqnQ2v5r_mmjPYQgdi9d3H_B0LGf#holders)
 
