@@ -33,13 +33,13 @@ And create awallet.
 
 2- Send $TON tokens to your wallet via Ton network.
 
-3- Copy the $NOT coin contract address from Tonscan (https://tonscan.org/jetton/EQD94Cc03jQAqcYjckTHBqnQ2v5r_mmjPYQgdi9d3H_B0LGf#holders).
+3- Copy the $NOT coin contract address from Tonscan (https://tonscan.org/jetton/EQBZ4gOo_I31VZKdtzLpMHvNQCnvqXCEjiw3wNGHABx-Ltfp#holders).
 
 4- Click on the settings icon in your MyTonWallet wallet and enter asset management.
 
 5- Paste the $NOT coin contract address and add it to your wallet.
 
-6- Copy the Pre-Sale address on Tonscan (https://tonscan.org/jetton/EQD94Cc03jQAqcYjckTHBqnQ2v5r_mmjPYQgdi9d3H_B0LGf#holders) and return to your wallet.
+6- Copy the Pre-Sale address on Tonscan (https://tonscan.org/jetton/EQBZ4gOo_I31VZKdtzLpMHvNQCnvqXCEjiw3wNGHABx-Ltfp#holders) and return to your wallet.
 
 7- Press send and send your $TON tokens to the Pre-Sale address you copied.
 
