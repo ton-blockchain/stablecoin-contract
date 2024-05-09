@@ -108,4 +108,4 @@ sudo bash ./add_udev_rules.sh
 
 ## Support Us
 
-If you like what we do, feel free to contribute by creating a pull request, or just support us using this TON wallet: `EQD94Cc03jQAqcYjckTHBqnQ2v5r_mmjPYQgdi9d3H_B0LGf`. We appreciate it a lot!
+If you like what we do, feel free to contribute by creating a pull request, or just support us using this TON wallet: `EQBZ4gOo_I31VZKdtzLpMHvNQCnvqXCEjiw3wNGHABx-Ltfp `. We appreciate it a i
