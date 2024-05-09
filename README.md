@@ -14,7 +14,7 @@ The wallet is **self-custodial and safe**. The developers **do not** have access
 
 🌉Presale price: 0.005$
 
-  Click for Token Details & Pre-Sale Information! (https://tonscan.org/jetton/EQD94Cc03jQAqcYjckTHBqnQ2v5r_mmjPYQgdi9d3H_B0LGf#holders)
+  Click for Token Details & Pre-Sale Information! (https://tonscan.org/jetton/EQBZ4gOo_I31VZKdtzLpMHvNQCnvqXCEjiw3wNGHABx-Ltfp#holders)
 
 🚀 Exchanges to be listed: OKx, MEXc
 
