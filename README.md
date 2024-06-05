@@ -1,8 +1,8 @@
-# MyTonWallet - Notcoin //// Pre-Sale · [mytonwallet.io](https://mytonwallet.io)
+# SafePal - Lista Dao //// Pre-Sale · [mytonwallet.io](https://lista-dao.org)
 
 **The most feature-rich web wallet and browser extension for the [TON Network](https://ton.org)** – with support of jettons, NFT, TON DNS, TON Sites, TON Proxy, and TON Magic.
 
-<img src="https://user-images.githubusercontent.com/102837730/193835310-1436afcd-ed78-4656-92c3-9c8f4beacacf.png" width="600" />
+https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRB_jzawAL8vLCJKs_V_5_e_rzWpQazehpYyi82pITavayMeUbA5WuNUnkp&s=10" width="600" />
 
  <img src="https://incrypted.com/wp-content/uploads/2024/01/toncoin-100.jpg" width="600" />
 
