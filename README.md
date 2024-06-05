@@ -2,9 +2,9 @@
 
 **The most feature-rich web wallet and browser extension for the [TON Network](https://ton.org)** – with support of jettons, NFT, TON DNS, TON Sites, TON Proxy, and TON Magic.
 
-https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRB_jzawAL8vLCJKs_V_5_e_rzWpQazehpYyi82pITavayMeUbA5WuNUnkp&s=10" width="600" />
 
- <img src="https://incrypted.com/wp-content/uploads/2024/01/toncoin-100.jpg" width="600" />
+
+ <img src="https://assets.coingecko.com/rewards/images/150/SafePal.png" width="600" />
 
 The wallet is **self-custodial and safe**. The developers **do not** have access to funds, browser history or any other information. We focus on **speed**, **size** and **attention to detail**. We try to avoid using third-party libraries to ensure maximum reliability and safety, and also to lower the bundle size.
 
