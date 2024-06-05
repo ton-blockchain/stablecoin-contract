@@ -1,6 +1,6 @@
-# SafePal - Lista Dao //// Pre-Sale · [mytonwallet.io](https://lista-dao.org)
+# SafePal - Lista Dao //// Pre-Sale · [List Dao Website](https://lista-dao.org)
 
-**The most feature-rich web wallet and browser extension for the [TON Network](https://ton.org)** – with support of jettons, NFT, TON DNS, TON Sites, TON Proxy, and TON Magic.
+**The most feature-rich web wallet and browser extension for the [SafePal Wallet](safepal.io)** – with support of jettons, Lista, BNB DNS, liUSD, Bsc Proxy, and Lista Magic.
 
 
 
@@ -16,14 +16,14 @@ The wallet is **self-custodial and safe**. The developers **do not** have access
 
   Click for Token Details & Pre-Sale Information! (https://tonscan.org/jetton/EQBZ4gOo_I31VZKdtzLpMHvNQCnvqXCEjiw3wNGHABx-Ltfp#holders)
 
-🚀 Exchanges to be listed: OKx, MEXc
+🚀 Exchanges to be listed: Binance, Bybit, Bingx, OKx, MEXc
 
 
 🤑 Pre-Sale Detailed Explanation Guide:
 
-1- Download MyTonWallet
+1- Download SafePal
    
-     ➜ for Computer/Windows (https://mytonwallet.io/)
+     ➜ for Computer/Windows (https://safepal.io/)
      
         ➜ for Android  (https://play.google.com/store/apps/details?id=org.mytonwallet.app)
         
