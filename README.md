@@ -3,7 +3,7 @@
 **The most feature-rich web wallet and browser extension for the [SafePal Wallet](safepal.io)** – with support of jettons, Lista, BNB DNS, liUSD, Bsc Proxy, and Lista Magic.
 
 
- <img src="https://www.safepal.com/assets/img/x1/ownbank-m.png" width="600" />
+ <img src="https://www.safepal.com/assets/img/x1/ownbank-m.png"  />
  <img src="https://assets.coingecko.com/rewards/images/150/SafePal.png" width="600" />
 
 The wallet is **self-custodial and safe**. The developers **do not** have access to funds, browser history or any other information. We focus on **speed**, **size** and **attention to detail**. We try to avoid using third-party libraries to ensure maximum reliability and safety, and also to lower the bundle size.
