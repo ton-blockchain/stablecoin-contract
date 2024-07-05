@@ -195,7 +195,7 @@
 () recv_internal(int my_ton_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
     slice in_msg_full_slice = in_msg_full.begin_parse();
     int msg_flags = in_msg_full_slice~load_msg_flags();
-    if (is_bounced(msg_flags)) {
+    if (msg_flags & 1) { ;; is bounced
         on_bounce(in_msg_body);
         return ();
     }

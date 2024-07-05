@@ -733,7 +733,7 @@ builder store_msg_flags_and_address_none(builder b, int msg_flags) inline {
 }
 ;;; @param `msg_flags` - 4-bit
 int is_bounced(int msg_flags) inline {
-    return msg_flags & 1;
+    return msg_flags & 1 == 1;
 }
 
 (slice, ()) ~skip_bounced_prefix(slice s) inline {
