@@ -55,3 +55,11 @@ API_KEY can be obtained on https://toncenter.com or https://testnet.toncenter.co
 
 - If you set the status of Jetton Wallet to prohibit receiving jettons - there is no guarantee that when you send jettons to such a jetton-wallet, jettons will bounce back and be credited to the sender. In case of gas shortage they can be lost.
    Toncoin for gas and forward will also not be returned to the sender but will remain on the sender’s jetton-wallet.
+
+# Security
+
+The stablecoin contract has been created by TON Core team and audited by security companies:
+
+- Trail of Bits: [Audit Report](https://github.com/ton-blockchain/stablecoin-contract/blob/main/audits/202403TON_Foundation_Stablecoin_Contracts_Report_+_Fix_Review.pdf)
+
+Feel free to review these reports for a detailed understanding of the contract's security measures.
